@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const acl_controller_1 = require("./acl.controller");
+const auth_middleware_1 = require("../../middlewares/auth.middleware");
+const acl_middleware_1 = require("../../middlewares/acl.middleware");
+const router = (0, express_1.Router)();
+router.use(auth_middleware_1.authenticateJWT);
+router.get('/roles', (0, acl_middleware_1.checkPermission)('acl.manage'), acl_controller_1.AclController.getRoles);
+router.post('/roles', (0, acl_middleware_1.checkPermission)('acl.manage'), acl_controller_1.AclController.createRole);
+router.get('/permissions', (0, acl_middleware_1.checkPermission)('acl.manage'), acl_controller_1.AclController.getPermissions);
+router.post('/permissions', (0, acl_middleware_1.checkPermission)('acl.manage'), acl_controller_1.AclController.createPermission);
+router.post('/assign-permission', (0, acl_middleware_1.checkPermission)('acl.manage'), acl_controller_1.AclController.assignPermissions);
+exports.default = router;
