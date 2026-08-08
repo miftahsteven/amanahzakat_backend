@@ -4,12 +4,13 @@
   "description": "Amanah Zakat ERP Backend Service with Node.js, Express, Prisma ORM & PostgreSQL",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "./node_modules/.bin/ts-node-dev --respawn --transpile-only src/server.ts",
-    "build": "./node_modules/.bin/tsc",
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "build": "tsc",
+    "prestart": "npm run build",
     "start": "node dist/server.js",
-    "prisma:generate": "./node_modules/.bin/prisma generate",
-    "prisma:push": "./node_modules/.bin/prisma db push",
-    "prisma:seed": "./node_modules/.bin/ts-node-dev prisma/seed.ts",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push",
+    "prisma:seed": "ts-node-dev prisma/seed.ts",
     "postinstall": "prisma generate"
   },
   "keywords": [
