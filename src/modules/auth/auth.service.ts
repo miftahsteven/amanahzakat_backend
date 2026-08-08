@@ -44,14 +44,18 @@ export class AuthService {
       },
     });
 
-    await prisma.auditTrail.create({
-      data: {
-        userId: user.id,
-        action: 'AUTH_LOGIN_CHALLENGE',
-        details: { challengeId: otpRecord.id },
-        ipAddress,
-      },
-    });
+    try {
+      await prisma.auditTrail.create({
+        data: {
+          userId: user.id,
+          action: 'AUTH_LOGIN_CHALLENGE',
+          details: { challengeId: otpRecord.id },
+          ipAddress,
+        },
+      });
+    } catch (auditErr) {
+      console.warn('Audit trail logging warning (login):', auditErr);
+    }
 
     return {
       challengeId: otpRecord.id,
@@ -150,14 +154,18 @@ export class AuthService {
       refreshTokenOptions
     );
 
-    await prisma.auditTrail.create({
-      data: {
-        userId: user.id,
-        action: 'AUTH_VERIFY_OTP_SUCCESS',
-        details: { roles },
-        ipAddress,
-      },
-    });
+    try {
+      await prisma.auditTrail.create({
+        data: {
+          userId: user.id,
+          action: 'AUTH_VERIFY_OTP_SUCCESS',
+          details: { roles },
+          ipAddress,
+        },
+      });
+    } catch (auditErr) {
+      console.warn('Audit trail logging warning (verifyOtp):', auditErr);
+    }
 
     return {
       accessToken,
