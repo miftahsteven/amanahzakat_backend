@@ -90,6 +90,7 @@ export class AclService {
     kodeMenu: string;
     namaMenu: string;
     kodeTampil: string;
+    icon?: string | null;
     urutan?: number;
     tampilDiSidebar?: boolean;
     tampilDiHeader?: boolean;
@@ -112,12 +113,15 @@ export class AclService {
       uniqueActions.unshift('read');
     }
 
+    const icon = data.icon?.trim() ? data.icon.trim() : null;
+
     const menu = await prisma.menu.create({
       data: {
         modulId: data.modulId,
         kodeMenu,
         namaMenu: data.namaMenu.trim(),
         kodeTampil: data.kodeTampil.trim().toUpperCase().slice(0, 4),
+        icon,
         urutan: data.urutan ?? 0,
         tampilDiSidebar: data.tampilDiSidebar ?? true,
         tampilDiHeader: data.tampilDiHeader ?? false,
@@ -154,6 +158,7 @@ export class AclService {
     data: {
       namaMenu?: string;
       kodeTampil?: string;
+      icon?: string | null;
       urutan?: number;
       tampilDiSidebar?: boolean;
       tampilDiHeader?: boolean;
@@ -173,11 +178,15 @@ export class AclService {
       }
     }
 
+    const icon =
+      data.icon === undefined ? undefined : data.icon?.trim() ? data.icon.trim() : null;
+
     return prisma.menu.update({
       where: { id },
       data: {
         namaMenu: data.namaMenu?.trim(),
         kodeTampil: data.kodeTampil?.trim().toUpperCase().slice(0, 4),
+        icon,
         urutan: data.urutan,
         tampilDiSidebar: data.tampilDiSidebar,
         tampilDiHeader: data.tampilDiHeader,

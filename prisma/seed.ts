@@ -8,6 +8,7 @@ type MenuSeed = {
   kodeMenu: string;
   namaMenu: string;
   kodeTampil: string;
+  icon?: string;
   urutan: number;
   tampilDiSidebar?: boolean;
   tampilDiHeader?: boolean;
@@ -26,34 +27,34 @@ const modulesData = [
 const read = (nama: string) => [{ aksi: 'read', nama }];
 
 const menusData: MenuSeed[] = [
-  { kodeModul: 'IKHTISAR', kodeMenu: 'dashboard', namaMenu: 'Dashboard ERP', kodeTampil: 'DB', urutan: 1, actions: read('Lihat Dashboard') },
-  { kodeModul: 'IKHTISAR', kodeMenu: 'laporan', namaMenu: 'Laporan Distribusi', kodeTampil: 'LD', urutan: 2, actions: [...read('Lihat Laporan Distribusi'), { aksi: 'export', nama: 'Ekspor Laporan Distribusi' }] },
-  { kodeModul: 'IKHTISAR', kodeMenu: 'peta', namaMenu: 'Peta Sebaran Mustahik', kodeTampil: 'PT', urutan: 3, actions: read('Lihat Peta Sebaran') },
-  { kodeModul: 'IKHTISAR', kodeMenu: 'dampak', namaMenu: 'Dampak Publik', kodeTampil: 'DP', urutan: 4, actions: read('Lihat Dampak Publik') },
+  { kodeModul: 'IKHTISAR', kodeMenu: 'dashboard', namaMenu: 'Dashboard ERP', kodeTampil: 'DB', icon: 'LayoutDashboard', urutan: 1, actions: read('Lihat Dashboard') },
+  { kodeModul: 'IKHTISAR', kodeMenu: 'laporan', namaMenu: 'Laporan Distribusi', kodeTampil: 'LD', icon: 'FileBarChart', urutan: 2, actions: [...read('Lihat Laporan Distribusi'), { aksi: 'export', nama: 'Ekspor Laporan Distribusi' }] },
+  { kodeModul: 'IKHTISAR', kodeMenu: 'peta', namaMenu: 'Peta Sebaran Mustahik', kodeTampil: 'PT', icon: 'Map', urutan: 3, actions: read('Lihat Peta Sebaran') },
+  { kodeModul: 'IKHTISAR', kodeMenu: 'dampak', namaMenu: 'Dampak Publik', kodeTampil: 'DP', icon: 'HeartHandshake', urutan: 4, actions: read('Lihat Dampak Publik') },
 
-  { kodeModul: 'OPERASIONAL_ZIS', kodeMenu: 'penerimaan', namaMenu: 'Penerimaan ZIS & Kwitansi', kodeTampil: 'PN', urutan: 1, actions: [...read('Lihat Penerimaan ZIS'), { aksi: 'create', nama: 'Catat Penerimaan ZIS' }, { aksi: 'update', nama: 'Ubah Penerimaan ZIS' }, { aksi: 'delete', nama: 'Hapus Penerimaan ZIS' }, { aksi: 'verify', nama: 'Verifikasi Penerimaan ZIS' }] },
-  { kodeModul: 'OPERASIONAL_ZIS', kodeMenu: 'penyaluran', namaMenu: 'Penyaluran 8 Asnaf', kodeTampil: 'PY', urutan: 2, actions: [...read('Lihat Penyaluran'), { aksi: 'create', nama: 'Ajukan Penyaluran' }, { aksi: 'update', nama: 'Ubah Penyaluran' }, { aksi: 'delete', nama: 'Hapus Penyaluran' }, { aksi: 'verify', nama: 'Verifikasi / Cairkan Penyaluran' }] },
-  { kodeModul: 'OPERASIONAL_ZIS', kodeMenu: 'muzakki', namaMenu: 'Data Muzakki', kodeTampil: 'MZ', urutan: 3, actions: [...read('Lihat Data Muzakki'), { aksi: 'create', nama: 'Tambah Muzakki' }, { aksi: 'update', nama: 'Ubah Muzakki' }, { aksi: 'delete', nama: 'Hapus Muzakki' }] },
-  { kodeModul: 'OPERASIONAL_ZIS', kodeMenu: 'program', namaMenu: 'Program & Pagu Anggaran', kodeTampil: 'PR', urutan: 4, actions: [...read('Lihat Program ZIS'), { aksi: 'update', nama: 'Ubah Program & Pagu' }] },
-  { kodeModul: 'OPERASIONAL_ZIS', kodeMenu: 'mitra', namaMenu: 'Dashboard Mitra Penyalur', kodeTampil: 'MT', urutan: 5, actions: [...read('Lihat Mitra Penyalur'), { aksi: 'create', nama: 'Tambah Mitra' }, { aksi: 'update', nama: 'Ubah Mitra' }] },
-  { kodeModul: 'OPERASIONAL_ZIS', kodeMenu: 'portalUpz', namaMenu: 'Portal UPZ Korporat', kodeTampil: 'PU', urutan: 6, actions: read('Akses Portal UPZ Korporat') },
-  { kodeModul: 'OPERASIONAL_ZIS', kodeMenu: 'upz', namaMenu: 'Dashboard UPZ Cabang', kodeTampil: 'UP', urutan: 7, actions: [...read('Lihat Dashboard UPZ'), { aksi: 'update', nama: 'Ubah Data UPZ' }] },
-  { kodeModul: 'OPERASIONAL_ZIS', kodeMenu: 'payroll', namaMenu: 'Payroll UPZ', kodeTampil: 'PL', urutan: 8, actions: [...read('Lihat Payroll UPZ'), { aksi: 'update', nama: 'Proses Payroll UPZ' }] },
-  { kodeModul: 'OPERASIONAL_ZIS', kodeMenu: 'mustahik', namaMenu: 'Data Mustahik & Scoring', kodeTampil: 'MS', urutan: 9, actions: [...read('Lihat Data Mustahik'), { aksi: 'create', nama: 'Tambah Mustahik' }, { aksi: 'update', nama: 'Ubah Mustahik' }, { aksi: 'delete', nama: 'Hapus Mustahik' }] },
+  { kodeModul: 'OPERASIONAL_ZIS', kodeMenu: 'penerimaan', namaMenu: 'Penerimaan ZIS & Kwitansi', kodeTampil: 'PN', icon: 'Wallet', urutan: 1, actions: [...read('Lihat Penerimaan ZIS'), { aksi: 'create', nama: 'Catat Penerimaan ZIS' }, { aksi: 'update', nama: 'Ubah Penerimaan ZIS' }, { aksi: 'delete', nama: 'Hapus Penerimaan ZIS' }, { aksi: 'verify', nama: 'Verifikasi Penerimaan ZIS' }] },
+  { kodeModul: 'OPERASIONAL_ZIS', kodeMenu: 'penyaluran', namaMenu: 'Penyaluran 8 Asnaf', kodeTampil: 'PY', icon: 'HandCoins', urutan: 2, actions: [...read('Lihat Penyaluran'), { aksi: 'create', nama: 'Ajukan Penyaluran' }, { aksi: 'update', nama: 'Ubah Penyaluran' }, { aksi: 'delete', nama: 'Hapus Penyaluran' }, { aksi: 'verify', nama: 'Verifikasi / Cairkan Penyaluran' }] },
+  { kodeModul: 'OPERASIONAL_ZIS', kodeMenu: 'muzakki', namaMenu: 'Data Muzakki', kodeTampil: 'MZ', icon: 'Users', urutan: 3, actions: [...read('Lihat Data Muzakki'), { aksi: 'create', nama: 'Tambah Muzakki' }, { aksi: 'update', nama: 'Ubah Muzakki' }, { aksi: 'delete', nama: 'Hapus Muzakki' }] },
+  { kodeModul: 'OPERASIONAL_ZIS', kodeMenu: 'program', namaMenu: 'Program & Pagu Anggaran', kodeTampil: 'PR', icon: 'FolderKanban', urutan: 4, actions: [...read('Lihat Program ZIS'), { aksi: 'update', nama: 'Ubah Program & Pagu' }] },
+  { kodeModul: 'OPERASIONAL_ZIS', kodeMenu: 'mitra', namaMenu: 'Dashboard Mitra Penyalur', kodeTampil: 'MT', icon: 'Building2', urutan: 5, actions: [...read('Lihat Mitra Penyalur'), { aksi: 'create', nama: 'Tambah Mitra' }, { aksi: 'update', nama: 'Ubah Mitra' }] },
+  { kodeModul: 'OPERASIONAL_ZIS', kodeMenu: 'portalUpz', namaMenu: 'Portal UPZ Korporat', kodeTampil: 'PU', icon: 'Globe2', urutan: 6, actions: read('Akses Portal UPZ Korporat') },
+  { kodeModul: 'OPERASIONAL_ZIS', kodeMenu: 'upz', namaMenu: 'Dashboard UPZ Cabang', kodeTampil: 'UP', icon: 'Landmark', urutan: 7, actions: [...read('Lihat Dashboard UPZ'), { aksi: 'update', nama: 'Ubah Data UPZ' }] },
+  { kodeModul: 'OPERASIONAL_ZIS', kodeMenu: 'payroll', namaMenu: 'Payroll UPZ', kodeTampil: 'PL', icon: 'Banknote', urutan: 8, actions: [...read('Lihat Payroll UPZ'), { aksi: 'update', nama: 'Proses Payroll UPZ' }] },
+  { kodeModul: 'OPERASIONAL_ZIS', kodeMenu: 'mustahik', namaMenu: 'Data Mustahik & Scoring', kodeTampil: 'MS', icon: 'UserRoundSearch', urutan: 9, actions: [...read('Lihat Data Mustahik'), { aksi: 'create', nama: 'Tambah Mustahik' }, { aksi: 'update', nama: 'Ubah Mustahik' }, { aksi: 'delete', nama: 'Hapus Mustahik' }] },
 
-  { kodeModul: 'KEUANGAN', kodeMenu: 'jurnal', namaMenu: 'Pencatatan Jurnal & G/L PSAK 109', kodeTampil: 'JR', urutan: 1, actions: [...read('Lihat Jurnal & G/L'), { aksi: 'create', nama: 'Catat Jurnal' }] },
-  { kodeModul: 'KEUANGAN', kodeMenu: 'closing', namaMenu: 'Closing Periode Akuntansi', kodeTampil: 'CL', urutan: 2, actions: [...read('Lihat Closing Periode'), { aksi: 'execute', nama: 'Eksekusi Closing Periode' }] },
-  { kodeModul: 'KEUANGAN', kodeMenu: 'simba', namaMenu: 'Export Paket SIMBA BAZNAS', kodeTampil: 'SB', urutan: 3, actions: [...read('Lihat Export SIMBA'), { aksi: 'export', nama: 'Ekspor Paket SIMBA' }] },
+  { kodeModul: 'KEUANGAN', kodeMenu: 'jurnal', namaMenu: 'Pencatatan Jurnal & G/L PSAK 109', kodeTampil: 'JR', icon: 'BookOpen', urutan: 1, actions: [...read('Lihat Jurnal & G/L'), { aksi: 'create', nama: 'Catat Jurnal' }] },
+  { kodeModul: 'KEUANGAN', kodeMenu: 'closing', namaMenu: 'Closing Periode Akuntansi', kodeTampil: 'CL', icon: 'Lock', urutan: 2, actions: [...read('Lihat Closing Periode'), { aksi: 'execute', nama: 'Eksekusi Closing Periode' }] },
+  { kodeModul: 'KEUANGAN', kodeMenu: 'simba', namaMenu: 'Export Paket SIMBA BAZNAS', kodeTampil: 'SB', icon: 'Package', urutan: 3, actions: [...read('Lihat Export SIMBA'), { aksi: 'export', nama: 'Ekspor Paket SIMBA' }] },
 
-  { kodeModul: 'PERALATAN', kodeMenu: 'kalkulator', namaMenu: 'Kalkulator Zakat Maal/Fitrah', kodeTampil: 'KL', urutan: 1, actions: read('Gunakan Kalkulator ZIS') },
-  { kodeModul: 'PERALATAN', kodeMenu: 'portal', namaMenu: 'Portal Informasi Publik', kodeTampil: 'PO', urutan: 2, actions: read('Akses Portal Publik') },
+  { kodeModul: 'PERALATAN', kodeMenu: 'kalkulator', namaMenu: 'Kalkulator Zakat Maal/Fitrah', kodeTampil: 'KL', icon: 'Calculator', urutan: 1, actions: read('Gunakan Kalkulator ZIS') },
+  { kodeModul: 'PERALATAN', kodeMenu: 'portal', namaMenu: 'Portal Informasi Publik', kodeTampil: 'PO', icon: 'Info', urutan: 2, actions: read('Akses Portal Publik') },
 
-  { kodeModul: 'PEMBERITAHUAN', kodeMenu: 'inbox', namaMenu: 'Pesan & Inbox Notifikasi', kodeTampil: 'IB', urutan: 1, tampilDiSidebar: false, tampilDiHeader: true, actions: read('Lihat Inbox & Notifikasi') },
+  { kodeModul: 'PEMBERITAHUAN', kodeMenu: 'inbox', namaMenu: 'Pesan & Inbox Notifikasi', kodeTampil: 'IB', icon: 'Bell', urutan: 1, tampilDiSidebar: false, tampilDiHeader: true, actions: read('Lihat Inbox & Notifikasi') },
 
-  { kodeModul: 'PENGATURAN', kodeMenu: 'user-management', namaMenu: 'Manajemen Pengguna (CRUD)', kodeTampil: 'UM', urutan: 1, actions: [...read('Lihat Manajemen Pengguna'), { aksi: 'manage', nama: 'Kelola Pengguna' }] },
-  { kodeModul: 'PENGATURAN', kodeMenu: 'module-management', namaMenu: 'Manajemen Modul & Menu', kodeTampil: 'MM', urutan: 2, actions: [...read('Lihat Manajemen Modul'), { aksi: 'manage', nama: 'Kelola Modul & Menu' }] },
-  { kodeModul: 'PENGATURAN', kodeMenu: 'permission-management', namaMenu: 'Manajemen Permission', kodeTampil: 'PM', urutan: 3, actions: [...read('Lihat Manajemen Permission'), { aksi: 'manage', nama: 'Kelola Permission' }] },
-  { kodeModul: 'PENGATURAN', kodeMenu: 'acl-management', namaMenu: 'ACL & Role Menu Management', kodeTampil: 'AM', urutan: 4, actions: [...read('Lihat ACL & Role'), { aksi: 'manage', nama: 'Kelola ACL & Role' }] },
+  { kodeModul: 'PENGATURAN', kodeMenu: 'user-management', namaMenu: 'Manajemen Pengguna (CRUD)', kodeTampil: 'UM', icon: 'UserCog', urutan: 1, actions: [...read('Lihat Manajemen Pengguna'), { aksi: 'manage', nama: 'Kelola Pengguna' }] },
+  { kodeModul: 'PENGATURAN', kodeMenu: 'module-management', namaMenu: 'Manajemen Modul & Menu', kodeTampil: 'MM', icon: 'Layers', urutan: 2, actions: [...read('Lihat Manajemen Modul'), { aksi: 'manage', nama: 'Kelola Modul & Menu' }] },
+  { kodeModul: 'PENGATURAN', kodeMenu: 'permission-management', namaMenu: 'Manajemen Permission', kodeTampil: 'PM', icon: 'KeyRound', urutan: 3, actions: [...read('Lihat Manajemen Permission'), { aksi: 'manage', nama: 'Kelola Permission' }] },
+  { kodeModul: 'PENGATURAN', kodeMenu: 'acl-management', namaMenu: 'ACL & Role Menu Management', kodeTampil: 'AM', icon: 'ShieldCheck', urutan: 4, actions: [...read('Lihat ACL & Role'), { aksi: 'manage', nama: 'Kelola ACL & Role' }] },
 ];
 
 const verifikatorPermissionCodes = [
@@ -140,6 +141,7 @@ async function main() {
         modulId,
         namaMenu: menu.namaMenu,
         kodeTampil: menu.kodeTampil,
+        icon: menu.icon ?? null,
         urutan: menu.urutan,
         tampilDiSidebar: menu.tampilDiSidebar ?? true,
         tampilDiHeader: menu.tampilDiHeader ?? false,
@@ -150,6 +152,7 @@ async function main() {
         kodeMenu: menu.kodeMenu,
         namaMenu: menu.namaMenu,
         kodeTampil: menu.kodeTampil,
+        icon: menu.icon ?? null,
         urutan: menu.urutan,
         tampilDiSidebar: menu.tampilDiSidebar ?? true,
         tampilDiHeader: menu.tampilDiHeader ?? false,
@@ -157,7 +160,7 @@ async function main() {
     });
     menuMap.set(menu.kodeMenu, saved.id);
   }
-  console.log(`✅ ${menuMap.size} menu`);
+  console.log(`✅ ${menuMap.size} menu (dengan icon)`);
 
   const permissionMap = new Map<string, string>();
   for (const menu of menusData) {
