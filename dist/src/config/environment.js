@@ -7,7 +7,7 @@ exports.config = void 0;
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 exports.config = {
-    port: parseInt(process.env.PORT || '5000', 10),
+    port: parseInt(process.env.PORT || '5005', 10),
     nodeEnv: process.env.NODE_ENV || 'development',
     jwtSecret: process.env.JWT_SECRET || 'amanah_zakat_secret_key_2026_super_secure_99',
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || '1d',

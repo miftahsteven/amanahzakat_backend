@@ -3,18 +3,9 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-type MenuSeed = {
-  kodeModul: string;
-  kodeMenu: string;
-  namaMenu: string;
-  kodeTampil: string;
-  icon?: string;
-  urutan: number;
-  tampilDiSidebar?: boolean;
-  tampilDiHeader?: boolean;
-  actions: { aksi: string; nama: string }[];
-};
-
+// ==========================================
+// 1. ACL & ERP CONFIG DATA
+// ==========================================
 const modulesData = [
   { kodeModul: 'IKHTISAR', namaModul: 'IKHTISAR', urutan: 1 },
   { kodeModul: 'OPERASIONAL_ZIS', namaModul: 'OPERASIONAL ZIS', urutan: 2 },
@@ -26,7 +17,7 @@ const modulesData = [
 
 const read = (nama: string) => [{ aksi: 'read', nama }];
 
-const menusData: MenuSeed[] = [
+const menusData = [
   { kodeModul: 'IKHTISAR', kodeMenu: 'dashboard', namaMenu: 'Dashboard ERP', kodeTampil: 'DB', icon: 'LayoutDashboard', urutan: 1, actions: read('Lihat Dashboard') },
   { kodeModul: 'IKHTISAR', kodeMenu: 'laporan', namaMenu: 'Laporan Distribusi', kodeTampil: 'LD', icon: 'FileBarChart', urutan: 2, actions: [...read('Lihat Laporan Distribusi'), { aksi: 'export', nama: 'Ekspor Laporan Distribusi' }] },
   { kodeModul: 'IKHTISAR', kodeMenu: 'peta', namaMenu: 'Peta Sebaran Mustahik', kodeTampil: 'PT', icon: 'Map', urutan: 3, actions: read('Lihat Peta Sebaran') },
@@ -49,7 +40,7 @@ const menusData: MenuSeed[] = [
   { kodeModul: 'PERALATAN', kodeMenu: 'kalkulator', namaMenu: 'Kalkulator Zakat Maal/Fitrah', kodeTampil: 'KL', icon: 'Calculator', urutan: 1, actions: read('Gunakan Kalkulator ZIS') },
   { kodeModul: 'PERALATAN', kodeMenu: 'portal', namaMenu: 'Portal Informasi Publik', kodeTampil: 'PO', icon: 'Info', urutan: 2, actions: read('Akses Portal Publik') },
 
-  { kodeModul: 'PEMBERITAHUAN', kodeMenu: 'inbox', namaMenu: 'Pesan & Inbox Notifikasi', kodeTampil: 'IB', icon: 'Bell', urutan: 1, tampilDiSidebar: false, tampilDiHeader: true, actions: read('Lihat Inbox & Notifikasi') },
+  { kodeModul: 'PEMBERITAHUAN', kodeMenu: 'inbox', namaMenu: 'Pesan & Inbox Notifikasi', kodeTampil: 'IB', icon: 'Bell', urutan: 1, actions: read('Lihat Inbox & Notifikasi') },
 
   { kodeModul: 'PENGATURAN', kodeMenu: 'user-management', namaMenu: 'Manajemen Pengguna (CRUD)', kodeTampil: 'UM', icon: 'UserCog', urutan: 1, actions: [...read('Lihat Manajemen Pengguna'), { aksi: 'manage', nama: 'Kelola Pengguna' }] },
   { kodeModul: 'PENGATURAN', kodeMenu: 'module-management', namaMenu: 'Manajemen Modul & Menu', kodeTampil: 'MM', icon: 'Layers', urutan: 2, actions: [...read('Lihat Manajemen Modul'), { aksi: 'manage', nama: 'Kelola Modul & Menu' }] },
@@ -57,83 +48,389 @@ const menusData: MenuSeed[] = [
   { kodeModul: 'PENGATURAN', kodeMenu: 'acl-management', namaMenu: 'ACL & Role Menu Management', kodeTampil: 'AM', icon: 'ShieldCheck', urutan: 4, actions: [...read('Lihat ACL & Role'), { aksi: 'manage', nama: 'Kelola ACL & Role' }] },
 ];
 
-const verifikatorPermissionCodes = [
-  'dashboard.read',
-  'laporan.read',
-  'laporan.export',
-  'penerimaan.read',
-  'penerimaan.verify',
-  'penyaluran.read',
-  'penyaluran.verify',
-  'mustahik.read',
-  'jurnal.read',
-  'jurnal.create',
-  'closing.read',
-  'closing.execute',
-  'simba.read',
-  'simba.export',
-  'inbox.read',
+// ==========================================
+// 2. PUBLIC CAMPAIGNS DATA
+// ==========================================
+const campaignsData = [
+  {
+    id: 1,
+    slug: 'sumur-sumba',
+    nama: 'Sumur Kehidupan Sumba Timur',
+    program: 'Wakaf Sumur',
+    lokasi: 'Sumba Timur, NTT',
+    target: 450000000,
+    terkumpul: 388400000,
+    donaturCount: 1847,
+    tenggat: '31 Agustus 2026',
+    ringkas: 'Membangun 12 titik sumur bor untuk 9 kampung yang setiap kemarau harus berjalan dua jam mencari air bersih.',
+    cerita: 'Di Sumba Timur, musim kemarau berlangsung hingga delapan bulan. Perempuan dan anak-anak menempuh perjalanan dua jam setiap hari hanya untuk mendapatkan air keruh dari cekungan sungai. Satu titik sumur bor mampu melayani 250-300 jiwa sepanjang tahun, lengkap dengan bak tampung dan pipa distribusi ke rumah warga.',
+    imageUrl: '/images/campaigns/sumur-sumba.jpg',
+    rincian: [
+      { item: 'Pengeboran & casing sumur (12 titik)', nilai: 264000000 },
+      { item: 'Pompa, panel surya & instalasi listrik', nilai: 96000000 },
+      { item: 'Bak tampung dan jaringan pipa', nilai: 60000000 },
+      { item: 'Pelatihan pengelola sumur desa', nilai: 30000000 },
+    ],
+    kabar: [
+      { tgl: '24 Juli 2026', judul: 'Titik ke-9 selesai dibor', isi: 'Sumur di Kampung Praiwitu mulai mengalir dan langsung dipakai 280 jiwa warga.' },
+      { tgl: '10 Juli 2026', judul: 'Survei geolistrik tiga titik terakhir', isi: 'Tim menemukan sumber air di kedalaman 42 meter, layak dibor bulan depan.' },
+    ],
+    donaturList: [
+      { nama: 'PT Cahaya Nusantara', nominal: 50000000, waktu: '2 jam lalu', doa: 'Semoga menjadi jariyah berkah untuk semua karyawan' },
+      { nama: 'Hj. Sundari Wibowo', nominal: 25000000, waktu: '5 jam lalu', doa: 'Pahala untuk almarhum orang tua' },
+      { nama: 'Donatur Anonim', nominal: 1000000, waktu: '1 hari lalu', doa: 'Bismillah lancar pembangunannya' },
+      { nama: 'Komunitas Subuh Berkah', nominal: 5000000, waktu: '2 hari lalu', doa: 'Semoga airnya mengalir deras berkah' },
+    ],
+    status: 'Berjalan',
+    isFeatured: true,
+  },
+  {
+    id: 2,
+    slug: 'qurban-nusantara',
+    nama: 'Qurban Berkah Nusantara 1447 H',
+    program: 'Qurban',
+    lokasi: '18 provinsi',
+    target: 1250000000,
+    terkumpul: 1118000000,
+    donaturCount: 4210,
+    tenggat: '5 Agustus 2026',
+    ringkas: 'Menyalurkan daging qurban segar ke pelosok yang jarang tersentuh distribusi daging, langsung dari peternak lokal.',
+    cerita: 'Hewan qurban dibeli dari peternak dhuafa di daerah penyaluran, sehingga satu qurban menggerakkan dua kebaikan: memberi daging bagi mustahik dan memutar ekonomi peternak kecil. Distribusi menjangkau kampung nelayan, desa pegunungan, dan komunitas adat.',
+    imageUrl: '/images/campaigns/qurban-nusantara.jpg',
+    rincian: [
+      { item: 'Kambing dari peternak dhuafa (620 ekor)', nilai: 682000000 },
+      { item: 'Sapi kolektif (58 ekor)', nilai: 406000000 },
+      { item: 'Pemotongan, pengemasan & distribusi', nilai: 132000000 },
+      { item: 'Pendampingan peternak mitra', nilai: 30000000 },
+    ],
+    kabar: [
+      { tgl: '22 Juli 2026', judul: '2.106 ekor sudah terkumpul', isi: 'Tahap pertama distribusi disiapkan untuk 14 provinsi.' },
+    ],
+    donaturList: [
+      { nama: 'Hendra Gunawan', nominal: 3500000, waktu: '3 jam lalu' },
+      { nama: 'Keluarga dr. Nadia', nominal: 14000000, waktu: '1 hari lalu', doa: 'Qurban untuk 1 keluarga' },
+    ],
+    status: 'Berjalan',
+    isFeatured: true,
+  },
+  {
+    id: 3,
+    slug: 'citarum-hijau',
+    nama: 'Sejuta Pohon untuk Citarum',
+    program: 'Konservasi DAS Citarum',
+    lokasi: 'Bandung Barat, Jawa Barat',
+    target: 900000000,
+    terkumpul: 806000000,
+    donaturCount: 96,
+    tenggat: '31 Desember 2026',
+    ringkas: 'Menanam dan merawat pohon di bantaran Citarum bersama kelompok tani, sekaligus memulihkan debit air musim kemarau.',
+    cerita: 'Bantaran hulu Citarum kehilangan tutupan lahan sejak dua dekade lalu. Program ini menanam pohon produktif dan tegakan keras, dirawat oleh kelompok tani setempat yang mendapat insentif perawatan tiga tahun — bukan sekadar tanam lalu ditinggalkan.',
+    imageUrl: '/images/campaigns/citarum-hijau.jpg',
+    rincian: [
+      { item: 'Bibit pohon produktif & tegakan keras', nilai: 342000000 },
+      { item: 'Insentif perawatan kelompok tani (3 tahun)', nilai: 378000000 },
+      { item: 'Pembibitan desa & pelatihan', nilai: 108000000 },
+      { item: 'Monitoring tutupan lahan', nilai: 72000000 },
+    ],
+    kabar: [
+      { tgl: '21 Juli 2026', judul: '12.480 pohon tertanam', isi: 'Tingkat hidup tanaman mencapai 91% pada evaluasi triwulan kedua.' },
+    ],
+    donaturList: [
+      { nama: 'Komunitas Pecinta Alam Citarum', nominal: 10000000, waktu: '4 hari lalu' },
+    ],
+    status: 'Berjalan',
+    isFeatured: true,
+  },
+  {
+    id: 4,
+    slug: 'beasiswa-yatim',
+    nama: 'Beasiswa Yatim Masuk Sekolah',
+    program: 'Beasiswa Anak Yatim',
+    lokasi: 'Jabodetabek & Jawa Barat',
+    target: 600000000,
+    terkumpul: 612000000,
+    donaturCount: 3129,
+    tenggat: '20 Juli 2026',
+    ringkas: 'Biaya sekolah, seragam, dan pendampingan belajar untuk anak yatim yang terancam putus sekolah.',
+    cerita: 'Beasiswa mencakup SPP satu tahun, seragam, perlengkapan belajar, dan pendampingan mentor dua kali sebulan. Fokus pada anak kelas 6, 9, dan 12 — titik paling rawan putus sekolah.',
+    imageUrl: '/images/campaigns/beasiswa-yatim.jpg',
+    rincian: [
+      { item: 'SPP & biaya sekolah 1.842 anak', nilai: 414000000 },
+      { item: 'Seragam dan perlengkapan belajar', nilai: 110000000 },
+      { item: 'Pendampingan mentor belajar', nilai: 76000000 },
+    ],
+    kabar: [
+      { tgl: '20 Juli 2026', judul: 'Target terlampaui', isi: 'Kelebihan dana dialihkan ke gelombang berikutnya atas persetujuan donatur.' },
+    ],
+    donaturList: [
+      { nama: 'Hamba Allah', nominal: 2500000, waktu: '6 jam lalu' },
+    ],
+    status: 'Tercapai',
+    isFeatured: true,
+  },
+  {
+    id: 5,
+    slug: 'infak-oksigen',
+    nama: 'Infak Oksigen untuk Dhuafa',
+    program: 'Program Infak Oksigen',
+    lokasi: 'Jakarta Timur & Bekasi',
+    target: 260000000,
+    terkumpul: 97500000,
+    donaturCount: 612,
+    tenggat: '30 September 2026',
+    ringkas: 'Konsentrator oksigen dan tabung isi ulang gratis bagi pasien dhuafa dengan gangguan pernapasan kronis.',
+    cerita: 'Banyak pasien PPOK dan pasca-TB dhuafa harus menyewa tabung oksigen harian yang biayanya melebihi penghasilan keluarga. Program ini menyediakan konsentrator pinjaman, isi ulang gratis, dan kunjungan perawat.',
+    imageUrl: '/images/campaigns/infak-oksigen.jpg',
+    rincian: [
+      { item: 'Konsentrator oksigen (40 unit)', nilai: 148000000 },
+      { item: 'Isi ulang tabung 12 bulan', nilai: 72000000 },
+      { item: 'Kunjungan perawat & edukasi keluarga', nilai: 40000000 },
+    ],
+    kabar: [
+      { tgl: '19 Juli 2026', judul: '415 pasien terlayani', isi: 'Sembilan unit konsentrator pertama sudah beredar di rumah pasien.' },
+    ],
+    donaturList: [],
+    status: 'Berjalan',
+    isFeatured: true,
+  },
+  {
+    id: 6,
+    slug: 'modal-mikro',
+    nama: 'Modal Bangkit Usaha Mikro',
+    program: 'Modal Usaha Mikro',
+    lokasi: 'Bandung & Bekasi',
+    target: 400000000,
+    terkumpul: 268000000,
+    donaturCount: 874,
+    tenggat: '15 Oktober 2026',
+    ringkas: 'Modal usaha tanpa bunga plus pendampingan pembukuan untuk ibu-ibu kepala keluarga.',
+    cerita: 'Penerima mendapat modal bergulir, pelatihan pembukuan sederhana, dan pendampingan enam bulan. Sebanyak 418 usaha telah dibina, 76% di antaranya bertahan melewati tahun pertama.',
+    imageUrl: '/images/campaigns/modal-umkm.jpg',
+    rincian: [
+      { item: 'Modal usaha 160 penerima', nilai: 280000000 },
+      { item: 'Pelatihan & pendampingan usaha', nilai: 84000000 },
+      { item: 'Monitoring dan evaluasi dampak', nilai: 36000000 },
+    ],
+    kabar: [
+      { tgl: '18 Juli 2026', judul: 'Angkatan kelima dimulai', isi: '42 ibu kepala keluarga memulai pendampingan bulan ini.' },
+    ],
+    donaturList: [],
+    status: 'Berjalan',
+    isFeatured: true,
+  },
+  {
+    id: 7,
+    slug: 'balita-stunting',
+    nama: 'Bantuan Gizi Balita & Ibu Hamil',
+    program: 'Bantuan Kesehatan',
+    lokasi: 'Garut & Tasikmalaya',
+    target: 350000000,
+    terkumpul: 215000000,
+    donaturCount: 1420,
+    tenggat: '25 November 2026',
+    ringkas: 'Paket makanan tambahan bergizi tinggi dan pemeriksaan rutin untuk cegah stunting pada 500 balita keluarga pra-sejahtera.',
+    cerita: 'Program intervensi gizi 1000 Hari Pertama Kehidupan (HPK) berupa paket telur, susu, protein hewani, dan multivitamin dengan pantauan tenaga kesehatan terpadu.',
+    imageUrl: '/images/campaigns/balita-stunting.jpg',
+    rincian: [
+      { item: 'Paket sembako bergizi & vitamin (500 anak)', nilai: 220000000 },
+      { item: 'Pemeriksaan medis & posyandu keliling', nilai: 80000000 },
+      { item: 'Edukasi pola asuh & sanitasi rumah', nilai: 50000000 },
+    ],
+    kabar: [
+      { tgl: '15 Juli 2026', judul: 'Distribusi gizi tahap 3 tersalurkan', isi: '310 balita di 4 desa terpencil Garut Selatan telah menerima paket nutrisi lengkap.' },
+    ],
+    donaturList: [],
+    status: 'Berjalan',
+    isFeatured: true,
+  },
+  {
+    id: 8,
+    slug: 'pangan-petani',
+    nama: 'Lumbung Pangan Beras Petani Dhuafa',
+    program: 'Bantuan Pangan',
+    lokasi: 'Indramayu & Karawang',
+    target: 500000000,
+    terkumpul: 420000000,
+    donaturCount: 2190,
+    tenggat: '10 Desember 2026',
+    ringkas: 'Membeli gabah langsung dengan harga adil dari petani kecil lalu mendistribusikan beras berkualitas untuk ribuan keluarga dhuafa.',
+    cerita: 'Mengintegrasikan pemberdayaan petani mustahik dengan penyaluran pangan pokok mustahik dhuafa perkotaan dan pelosok.',
+    imageUrl: '/images/campaigns/pangan-petani.jpg',
+    rincian: [
+      { item: 'Penyerapan gabah petani lokal (50 ton)', nilai: 350000000 },
+      { item: 'Pengolahan, pengemasan dan logistik', nilai: 100000000 },
+      { item: 'Bantuan bibit & pupuk organik', nilai: 50000000 },
+    ],
+    kabar: [
+      { tgl: '12 Juli 2026', judul: '35 ton beras siap salur', isi: 'Pengemasan paket 5kg beras premium telah rampung di gudang logistik Karawang.' },
+    ],
+    donaturList: [],
+    status: 'Berjalan',
+    isFeatured: true,
+  },
 ];
 
-const amilPermissionCodes = [
-  'dashboard.read',
-  'penerimaan.read',
-  'penerimaan.create',
-  'penerimaan.update',
-  'muzakki.read',
-  'muzakki.create',
-  'muzakki.update',
-  'mustahik.read',
-  'mustahik.create',
-  'mustahik.update',
-  'kalkulator.read',
-  'inbox.read',
+// ==========================================
+// 3. KABAR PENYALURAN DATA
+// ==========================================
+const distributionsData = [
+  {
+    id: 1,
+    slug: 'sumur-praiwitu',
+    judul: 'Sumur ke-9 Mengalir di Kampung Praiwitu',
+    program: 'Wakaf Sumur',
+    kampanye: 'Sumur Kehidupan Sumba Timur',
+    lokasi: 'Praiwitu, Sumba Timur, NTT',
+    tgl: '24 Juli 2026',
+    nominal: 96000000,
+    penerima: 280,
+    asnaf: 'Miskin',
+    mitra: 'Lembaga Air Amanah',
+    status: 'Terbit',
+    ringkas: 'Titik bor kesembilan selesai dan langsung melayani 280 jiwa yang sebelumnya menempuh dua jam perjalanan untuk air bersih.',
+    isi: 'Pengeboran di Kampung Praiwitu menembus akuifer pada kedalaman 42 meter setelah survei geolistrik pada awal Juli. Sumur dilengkapi pompa bertenaga surya, bak tampung 5.000 liter, dan jaringan pipa ke tiga titik keran umum.\n\nPengelolaan diserahkan kepada kelompok warga yang telah dilatih merawat pompa dan mencatat pemakaian. Iuran perawatan disepakati sangat kecil dan dikelola secara terbuka oleh warga sendiri, agar sumur tetap berfungsi setelah masa pendampingan berakhir.',
+    rincian: [
+      { item: 'Pengeboran dan casing sumur', nilai: 42000000 },
+      { item: 'Pompa surya dan panel', nilai: 31000000 },
+      { item: 'Bak tampung dan perpipaan', nilai: 16000000 },
+      { item: 'Pelatihan pengelola warga', nilai: 7000000 },
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb18f15f8?auto=format&fit=crop&w=1000&q=80',
+  },
+  {
+    id: 2,
+    slug: 'qurban-tahap-satu',
+    judul: 'Distribusi Qurban Tahap Pertama Menjangkau 14 Provinsi',
+    program: 'Qurban',
+    kampanye: 'Qurban Berkah Nusantara 1447 H',
+    lokasi: '14 Provinsi di Indonesia',
+    tgl: '22 Juli 2026',
+    nominal: 185000000,
+    penerima: 4120,
+    asnaf: 'Fakir',
+    mitra: 'Peternak Dhuafa Binaan',
+    status: 'Terbit',
+    ringkas: 'Sebanyak 2.106 ekor hewan qurban dibeli dari peternak dhuafa lalu disalurkan ke kampung nelayan, desa pegunungan, dan komunitas adat.',
+    isi: 'Seluruh hewan dibeli dari peternak kecil di sekitar lokasi penyaluran, sehingga dana qurban berputar dua kali: menghidupkan ekonomi peternak dan memberi daging kepada keluarga yang jarang menikmatinya.\n\nPemotongan dilakukan bertahap dengan pengawasan petugas syariah. Daging dikemas per keluarga dan diantar langsung ke rumah penerima yang telah didata sebelumnya berdasarkan NIK.',
+    rincian: [
+      { item: 'Pembelian hewan dari peternak', nilai: 142000000 },
+      { item: 'Pemotongan dan pengemasan', nilai: 26000000 },
+      { item: 'Distribusi ke titik penerima', nilai: 17000000 },
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1570042225831-d98fa7577f1e?auto=format&fit=crop&w=1000&q=80',
+  },
+  {
+    id: 3,
+    slug: 'citarum-triwulan-dua',
+    judul: '12.480 Pohon Tertanam, Tingkat Hidup 91 Persen',
+    program: 'Konservasi DAS Citarum',
+    kampanye: 'Sejuta Pohon untuk Citarum',
+    lokasi: 'Bandung Barat, Jawa Barat',
+    tgl: '21 Juli 2026',
+    nominal: 120000000,
+    penerima: 1240,
+    asnaf: 'Fisabilillah',
+    mitra: 'Yayasan Hijau Lestari',
+    status: 'Terbit',
+    ringkas: 'Evaluasi triwulan kedua mencatat tingkat hidup tanaman 91 persen, dengan debit air musim kemarau paling stabil sejak 2019.',
+    isi: 'Penanaman difokuskan di bantaran hulu yang kehilangan tutupan lahan. Kelompok tani setempat menerima insentif perawatan selama tiga tahun, bukan hanya pada saat penanaman, sehingga tanaman benar-benar dijaga sampai tumbuh besar.\n\nPemantauan dilakukan dengan pencatatan berkala di 46 petak contoh. Warga juga mulai memanen hasil pohon produktif yang ditanam pada gelombang pertama.',
+    rincian: [
+      { item: 'Bibit pohon produktif dan tegakan keras', nilai: 54000000 },
+      { item: 'Insentif perawatan kelompok tani', nilai: 48000000 },
+      { item: 'Pembibitan desa dan pelatihan', nilai: 18000000 },
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=1000&q=80',
+  },
+  {
+    id: 4,
+    slug: 'beasiswa-gelombang-dua',
+    judul: '1.842 Anak Yatim Kembali ke Bangku Sekolah',
+    program: 'Beasiswa Anak Yatim',
+    kampanye: 'Beasiswa Yatim Masuk Sekolah',
+    lokasi: 'Jabodetabek dan Jawa Barat',
+    tgl: '18 Juli 2026',
+    nominal: 45000000,
+    penerima: 1842,
+    asnaf: 'Fisabilillah',
+    mitra: 'Sekolah Juara Nusantara',
+    status: 'Terbit',
+    ringkas: 'Beasiswa mencakup biaya sekolah satu tahun, seragam, perlengkapan belajar, dan pendampingan mentor dua kali sebulan.',
+    isi: 'Penerima difokuskan pada anak kelas 6, 9, dan 12 — tiga titik yang paling rawan putus sekolah karena biaya kelulusan dan pendaftaran jenjang berikutnya.\n\nSelain biaya, setiap anak mendapat mentor pendamping yang memantau kehadiran dan nilai. Laporan perkembangan dikirim kepada donatur setiap semester.',
+    rincian: [
+      { item: 'Biaya sekolah dan pendaftaran', nilai: 28000000 },
+      { item: 'Seragam dan perlengkapan belajar', nilai: 11000000 },
+      { item: 'Pendampingan mentor', nilai: 6000000 },
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1000&q=80',
+  },
+  {
+    id: 5,
+    slug: 'oksigen-cakung',
+    judul: 'Sembilan Konsentrator Oksigen Beredar di Rumah Pasien',
+    program: 'Program Infak Oksigen',
+    kampanye: 'Infak Oksigen untuk Dhuafa',
+    lokasi: 'Jakarta Timur dan Bekasi',
+    tgl: '19 Juli 2026',
+    nominal: 32500000,
+    penerima: 415,
+    asnaf: 'Miskin',
+    mitra: 'Rumah Zakat Sehat',
+    status: 'Terbit',
+    ringkas: 'Unit konsentrator pertama dipinjamkan gratis kepada pasien PPOK dan pasca-TB dhuafa, disertai kunjungan perawat.',
+    isi: 'Sebelumnya keluarga pasien harus menyewa tabung oksigen harian yang biayanya kerap melebihi penghasilan mereka. Dengan konsentrator pinjaman, biaya harian itu hilang sepenuhnya.\n\nPerawat berkunjung dua pekan sekali untuk memeriksa alat sekaligus mengedukasi keluarga tentang penggunaan yang aman.',
+    rincian: [
+      { item: 'Konsentrator oksigen 9 unit', nilai: 22500000 },
+      { item: 'Isi ulang tabung cadangan', nilai: 6000000 },
+      { item: 'Kunjungan perawat dan edukasi', nilai: 4000000 },
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=1000&q=80',
+  },
 ];
 
-async function assignPermissionCodes(roleId: string, codes: string[], permissionMap: Map<string, string>) {
-  const rows = codes
-    .map((code) => {
-      const permissionId = permissionMap.get(code);
-      if (!permissionId) {
-        console.warn(`⚠️  Permission ${code} tidak ditemukan, dilewati.`);
-        return null;
-      }
-      return { roleId, permissionId };
-    })
-    .filter((row): row is { roleId: string; permissionId: string } => row !== null);
-
-  if (rows.length === 0) return;
-
-  await prisma.rolePermission.createMany({
-    data: rows,
-    skipDuplicates: true,
-  });
-}
+// ==========================================
+// 4. FAQ DATA (20 ITEM RESMI)
+// ==========================================
+const faqItemsData = [
+  { category: 'Dasar ZIS', question: 'Apa bedanya zakat, infak, dan shodaqoh?', answer: 'Zakat adalah kewajiban yang kadarnya sudah ditentukan syariat (umumnya 2,5%), hanya boleh disalurkan kepada delapan asnaf, dan baru wajib bila harta mencapai nisab.|Infak adalah pengeluaran harta untuk kebaikan tanpa batas nominal dan tanpa ketentuan penerima yang mengikat — boleh untuk pembangunan sekolah, masjid, atau operasional program.|Shodaqoh maknanya paling luas: mencakup harta maupun non-harta seperti tenaga dan ilmu. Di AmanahZakat, donasi infak dan shodaqoh dicatat pada rekening dana terpisah dari dana zakat.', sourceReference: 'QS. At-Taubah: 60 · UU 23/2011', urutan: 1 },
+  { category: 'Dasar ZIS', question: 'Siapa saja yang berhak menerima zakat?', answer: 'Delapan golongan (asnaf): fakir, miskin, amil, mualaf, riqab (memerdekakan budak), gharimin (terlilit utang), fi sabilillah, dan ibnu sabil (musafir yang kehabisan bekal).|Seluruh penyaluran AmanahZakat dicatat per asnaf dan bisa Anda lihat pada halaman Laporan Dampak.', sourceReference: 'QS. At-Taubah: 60', urutan: 2 },
+  { category: 'Dasar ZIS', question: 'Apa itu nisab dan haul?', answer: 'Nisab adalah batas minimal harta yang membuat zakat menjadi wajib — untuk harta simpanan setara 85 gram emas murni.|Haul adalah masa kepemilikan satu tahun hijriah. Bila harta belum genap setahun atau belum mencapai nisab, belum ada kewajiban zakat, namun tetap dianjurkan berinfak.', sourceReference: 'Fatwa MUI · Baznas', urutan: 3 },
+  { category: 'Zakat Maal', question: 'Bagaimana cara menghitung zakat harta simpanan?', answer: 'Jumlahkan seluruh aset likuid: uang tunai, tabungan, deposito, emas dan perak, serta investasi, lalu kurangi utang yang jatuh tempo.|Bandingkan hasilnya dengan nisab, yaitu 85 gram × harga emas per gram hari ini. Bila mencapai atau melebihi nisab dan sudah genap satu tahun, zakatnya 2,5% dari harta bersih tersebut.|Menu Hitung Zakat di situs ini melakukan perhitungan itu untuk Anda secara otomatis.', sourceReference: 'Fatwa MUI 8/2011', urutan: 4 },
+  { category: 'Zakat Maal', question: 'Apakah rumah yang saya tempati kena zakat?', answer: 'Tidak. Rumah tinggal, kendaraan yang dipakai sehari-hari, dan perabot rumah tangga termasuk kebutuhan pokok sehingga tidak dizakati.|Namun bila properti disewakan atau diperjualbelikan sebagai usaha, hasil sewa dan nilai perdagangannya masuk hitungan zakat.', sourceReference: 'Ijtihad ulama kontemporer', urutan: 5 },
+  { category: 'Zakat Maal', question: 'Bagaimana zakat emas dan perhiasan?', answer: 'Emas batangan dan tabungan emas dizakati 2,5% bila mencapai 85 gram dan genap satu haul.|Perhiasan yang dipakai wajar sehari-hari menurut jumhur ulama tidak dizakati; yang disimpan sebagai investasi tetap dizakati.', sourceReference: 'Fatwa MUI', urutan: 6 },
+  { category: 'Zakat Profesi', question: 'Berapa zakat dari gaji bulanan saya?', answer: 'Kadarnya 2,5%. Ada dua pendekatan: bruto — langsung 2,5% dari seluruh penghasilan bulanan; atau neto — 2,5% dari penghasilan setelah dikurangi kebutuhan pokok.|Nisab bulanan setara 522 kg beras dibagi dua belas, atau sekitar penghasilan Rp 6,7 juta per bulan pada harga beras saat ini.|Contoh: gaji Rp 10.000.000 dengan pendekatan bruto menghasilkan zakat Rp 250.000 per bulan.', sourceReference: 'Fatwa MUI 3/2003', urutan: 7 },
+  { category: 'Zakat Profesi', question: 'Zakat profesi dibayar bulanan atau tahunan?', answer: 'Keduanya sah. Bulanan lebih ringan dan lebih tertib, tahunan lebih mudah dicocokkan dengan SPT.|Bila Anda memilih bulanan lewat UPZ kantor, potongan otomatis dilakukan dari payroll dan bukti setornya terbit setiap bulan.', sourceReference: 'Fatwa MUI 3/2003', urutan: 8 },
+  { category: 'Zakat Profesi', question: 'Apakah THR dan bonus kena zakat?', answer: 'Ya, THR, bonus, dan komisi termasuk penghasilan sehingga dihitung dengan kadar yang sama, yaitu 2,5% pada saat diterima.', sourceReference: 'Fatwa MUI 3/2003', urutan: 9 },
+  { category: 'Pertanian & Tambang', question: 'Berapa kadar zakat hasil panen?', answer: 'Nisabnya 653 kg gabah kering dan tidak menunggu haul — zakat dikeluarkan setiap kali panen.|Kadarnya 10% bila lahan diairi hujan atau mata air tanpa biaya, dan 5% bila memakai irigasi berbiaya seperti pompa atau sewa air.', sourceReference: 'HR. Bukhari · Fatwa MUI', urutan: 10 },
+  { category: 'Pertanian & Tambang', question: 'Bagaimana zakat hasil tambang?', answer: 'Nisabnya setara 85 gram emas, tanpa haul — dikeluarkan begitu hasil tambang diperoleh.|Kadarnya 2,5% dari nilai bersih setelah dikurangi biaya eksplorasi dan ekstraksi.', sourceReference: 'Fatwa MUI', urutan: 11 },
+  { category: 'Infak & Shodaqoh', question: 'Apakah infak bisa saya arahkan ke program tertentu?', answer: 'Bisa. Setiap kampanye di situs ini memiliki rekening dana tersendiri, sehingga donasi Anda hanya terpakai untuk program yang Anda pilih.|Bila program telah tuntas dan dana tersisa, penggunaannya dialihkan ke program sejenis dan diumumkan pada halaman Kabar Penyaluran.', sourceReference: 'Kebijakan AmanahZakat', urutan: 12 },
+  { category: 'Infak & Shodaqoh', question: 'Apa itu wakaf pohon dan infak oksigen?', answer: 'Wakaf Pohon adalah wakaf produktif: pohon ditanam dan dirawat, hasilnya dikelola untuk kemaslahatan umum secara berkelanjutan.|Infak Oksigen membiayai penghijauan kawasan kritis, termasuk Konservasi DAS Citarum, dengan laporan jumlah pohon dan titik tanam yang dapat ditelusuri.', sourceReference: 'Program AmanahZakat', urutan: 13 },
+  { category: 'Pajak & Bukti', question: 'Apakah zakat mengurangi pajak penghasilan saya?', answer: 'Zakat yang dibayarkan melalui lembaga amil resmi yang disahkan pemerintah dapat menjadi pengurang penghasilan bruto dalam SPT Tahunan Anda.|Syaratnya, Anda melampirkan bukti setor sah — di AmanahZakat berupa SBMZ (Surat Bukti Membayar Zakat) yang memuat QR verifikasi.|Perlu dicatat: zakat menjadi pengurang penghasilan bruto, bukan pengurang pajak terutang secara langsung.', sourceReference: 'UU 36/2008 Pasal 9 · PP 60/2010', urutan: 14 },
+  { category: 'Pajak & Bukti', question: 'Bagaimana cara mendapatkan SBMZ?', answer: 'SBMZ terbit otomatis setiap kali pembayaran zakat Anda berhasil, dan dapat diunduh sebagai PDF dari halaman konfirmasi maupun dari email tanda terima.|Untuk keperluan SPT, tersedia pula Rekap Tahunan Muzakki yang merangkum seluruh setoran Anda dalam satu tahun pajak.|Infak dan shodaqoh tetap mendapat bukti pembayaran, namun bukan SBMZ karena tidak diakui sebagai pengurang penghasilan bruto.', sourceReference: 'Kebijakan AmanahZakat', urutan: 15 },
+  { category: 'Pajak & Bukti', question: 'Bagaimana kantor pajak memverifikasi bukti saya?', answer: 'Setiap SBMZ memuat kode unik dan QR yang mengarah ke halaman Verifikasi Bukti di situs ini.|Petugas cukup memindai QR atau memasukkan kode tersebut untuk melihat status keabsahan, nominal, tanggal, dan jenis dana.', sourceReference: 'Kebijakan AmanahZakat', urutan: 16 },
+  { category: 'Teknis Donasi', question: 'Metode pembayaran apa saja yang tersedia?', answer: 'Tersedia QRIS, virtual account bank, transfer manual, serta e-wallet. Seluruh transaksi diproses melalui payment gateway berlisensi Bank Indonesia.|Dana masuk langsung ke rekening lembaga, bukan rekening pribadi.', sourceReference: 'Kebijakan AmanahZakat', urutan: 17 },
+  { category: 'Teknis Donasi', question: 'Berapa hak amil yang diambil dari donasi saya?', answer: 'Hak amil untuk operasional lembaga diambil dari porsi amil sesuai ketentuan, dan seluruh penggunaannya dilaporkan dalam laporan keuangan yang diaudit.|Rincian alokasi tiap kampanye bisa Anda lihat pada halaman detail program.', sourceReference: 'UU 23/2011 · Fatwa MUI 8/2011', urutan: 18 },
+  { category: 'Teknis Donasi', question: 'Bisakah saya berdonasi anonim?', answer: 'Bisa. Centang opsi hamba Allah saat mengisi formulir donasi; nama Anda tidak akan tampil di daftar donatur publik.|Namun untuk penerbitan SBMZ, identitas dan NPWP tetap diperlukan karena dokumen tersebut bersifat resmi.', sourceReference: 'Kebijakan AmanahZakat', urutan: 19 },
+  { category: 'Teknis Donasi', question: 'Bagaimana perusahaan membuka UPZ karyawan?', answer: 'Perusahaan dapat membentuk Unit Pengumpul Zakat internal dengan perjanjian kerja sama, lalu memotong zakat karyawan lewat payroll.|PIC perusahaan mendapat portal tersendiri untuk mengunggah batch potongan dan memantau serapan dana karyawannya, serta laporan bagi hasil pengelolaan.', sourceReference: 'UU 23/2011', urutan: 20 },
+];
 
 async function main() {
-  console.log('🌱 Seeding Amanah Zakat: modul, menu, permission, role, user...');
+  console.log('🌱 Starting comprehensive database seed...');
 
+  // 1. Seed Modules & Menus
   const moduleMap = new Map<string, string>();
   for (const modul of modulesData) {
     const saved = await prisma.modul.upsert({
       where: { kodeModul: modul.kodeModul },
-      update: {
-        namaModul: modul.namaModul,
-        urutan: modul.urutan,
-        isActive: true,
-      },
+      update: { namaModul: modul.namaModul, urutan: modul.urutan, isActive: true },
       create: modul,
     });
     moduleMap.set(modul.kodeModul, saved.id);
   }
-  console.log(`✅ ${moduleMap.size} modul`);
 
   const menuMap = new Map<string, string>();
   for (const menu of menusData) {
     const modulId = moduleMap.get(menu.kodeModul);
-    if (!modulId) {
-      throw new Error(`Modul ${menu.kodeModul} tidak ditemukan untuk menu ${menu.kodeMenu}`);
-    }
+    if (!modulId) continue;
 
     const saved = await prisma.menu.upsert({
       where: { kodeMenu: menu.kodeMenu },
@@ -143,8 +440,6 @@ async function main() {
         kodeTampil: menu.kodeTampil,
         icon: menu.icon ?? null,
         urutan: menu.urutan,
-        tampilDiSidebar: menu.tampilDiSidebar ?? true,
-        tampilDiHeader: menu.tampilDiHeader ?? false,
         isActive: true,
       },
       create: {
@@ -154,14 +449,12 @@ async function main() {
         kodeTampil: menu.kodeTampil,
         icon: menu.icon ?? null,
         urutan: menu.urutan,
-        tampilDiSidebar: menu.tampilDiSidebar ?? true,
-        tampilDiHeader: menu.tampilDiHeader ?? false,
       },
     });
     menuMap.set(menu.kodeMenu, saved.id);
   }
-  console.log(`✅ ${menuMap.size} menu (dengan icon)`);
 
+  // 2. Seed Permissions & Roles
   const permissionMap = new Map<string, string>();
   for (const menu of menusData) {
     const menuId = menuMap.get(menu.kodeMenu);
@@ -171,78 +464,22 @@ async function main() {
       const kodePermission = `${menu.kodeMenu}.${action.aksi}`;
       const saved = await prisma.permission.upsert({
         where: { kodePermission },
-        update: {
-          namaPermission: action.nama,
-          aksi: action.aksi,
-          menuId,
-        },
-        create: {
-          kodePermission,
-          namaPermission: action.nama,
-          aksi: action.aksi,
-          menuId,
-        },
+        update: { namaPermission: action.nama, aksi: action.aksi, menuId },
+        create: { kodePermission, namaPermission: action.nama, aksi: action.aksi, menuId },
       });
       permissionMap.set(kodePermission, saved.id);
     }
   }
-  console.log(`✅ ${permissionMap.size} permission`);
 
   const superAdminRole = await prisma.role.upsert({
     where: { kodeRole: 'SUPER_ADMIN' },
-    update: {
-      namaRole: 'Super Admin System',
-      deskripsi: 'Akses penuh ke seluruh modul, menu, dan pengaturan sistem Amanah Zakat ERP',
-      isSystem: true,
-    },
-    create: {
-      kodeRole: 'SUPER_ADMIN',
-      namaRole: 'Super Admin System',
-      deskripsi: 'Akses penuh ke seluruh modul, menu, dan pengaturan sistem Amanah Zakat ERP',
-      isSystem: true,
-    },
+    update: { namaRole: 'Super Admin System', deskripsi: 'Akses penuh seluruh modul', isSystem: true },
+    create: { kodeRole: 'SUPER_ADMIN', namaRole: 'Super Admin System', deskripsi: 'Akses penuh seluruh modul', isSystem: true },
   });
 
-  const verifikatorRole = await prisma.role.upsert({
-    where: { kodeRole: 'VERIFIKATOR' },
-    update: {
-      namaRole: 'Verifikator Keuangan & Penyaluran',
-      deskripsi: 'Memverifikasi transaksi masuk, penyaluran, laporan, mustahik, dan jurnal G/L',
-      isSystem: true,
-    },
-    create: {
-      kodeRole: 'VERIFIKATOR',
-      namaRole: 'Verifikator Keuangan & Penyaluran',
-      deskripsi: 'Memverifikasi transaksi masuk, penyaluran, laporan, mustahik, dan jurnal G/L',
-      isSystem: true,
-    },
-  });
-
-  const amilRole = await prisma.role.upsert({
-    where: { kodeRole: 'AMIL' },
-    update: {
-      namaRole: 'Staf Amil Operasional ZIS',
-      deskripsi: 'Staf operasional pencatatan ZIS, muzakki, mustahik, dan kalkulator ZIS',
-      isSystem: true,
-    },
-    create: {
-      kodeRole: 'AMIL',
-      namaRole: 'Staf Amil Operasional ZIS',
-      deskripsi: 'Staf operasional pencatatan ZIS, muzakki, mustahik, dan kalkulator ZIS',
-      isSystem: true,
-    },
-  });
-
-  await prisma.rolePermission.deleteMany({
-    where: {
-      roleId: { in: [superAdminRole.id, verifikatorRole.id, amilRole.id] },
-    },
-  });
-
-  await assignPermissionCodes(superAdminRole.id, Array.from(permissionMap.keys()), permissionMap);
-  await assignPermissionCodes(verifikatorRole.id, verifikatorPermissionCodes, permissionMap);
-  await assignPermissionCodes(amilRole.id, amilPermissionCodes, permissionMap);
-  console.log('✅ Mapping permission ke SUPER_ADMIN, VERIFIKATOR, AMIL');
+  await prisma.rolePermission.deleteMany({ where: { roleId: superAdminRole.id } });
+  const allPermRows = Array.from(permissionMap.values()).map((pId) => ({ roleId: superAdminRole.id, permissionId: pId }));
+  await prisma.rolePermission.createMany({ data: allPermRows, skipDuplicates: true });
 
   const passwordHash = await bcrypt.hash('password123', 10);
   const superAdminUser = await prisma.user.upsert({
@@ -261,21 +498,270 @@ async function main() {
   });
 
   await prisma.userRole.upsert({
-    where: {
-      userId_roleId: {
-        userId: superAdminUser.id,
-        roleId: superAdminRole.id,
-      },
-    },
+    where: { userId_roleId: { userId: superAdminUser.id, roleId: superAdminRole.id } },
     update: {},
+    create: { userId: superAdminUser.id, roleId: superAdminRole.id },
+  });
+
+  // 3. Seed ERP Base Entities: Programs & Muzakki
+  const erpMuzakki = await prisma.muzakki.upsert({
+    where: { nomor: 'MZK-2026-0819' },
+    update: {
+      nama: 'H. Ahmad Dahlan, S.E.',
+      nikAtauNpwp: '01.234.567.8-012.000',
+      hp: '081234567890',
+      email: 'ahmad.dahlan@example.com',
+      alamat: 'Jl. Menteng Raya No. 42, Jakarta Pusat',
+      totalSetoran: 27500000,
+      transaksiCount: 7,
+    },
     create: {
-      userId: superAdminUser.id,
-      roleId: superAdminRole.id,
+      nomor: 'MZK-2026-0819',
+      nama: 'H. Ahmad Dahlan, S.E.',
+      tipe: 'Perorangan',
+      nikAtauNpwp: '01.234.567.8-012.000',
+      hp: '081234567890',
+      email: 'ahmad.dahlan@example.com',
+      alamat: 'Jl. Menteng Raya No. 42, Jakarta Pusat',
+      totalSetoran: 27500000,
+      transaksiCount: 7,
+      tanggalBergabung: '10 Januari 2025',
     },
   });
 
-  console.log('✅ Super Admin: admin / password123');
-  console.log('🎉 Seeding selesai.');
+  await prisma.programZis.upsert({
+    where: { id: 'prog-001' },
+    update: { nama: 'Program Air Bersih & Wakaf Sumur', pilar: 'Kemanusiaan', paguAnggaran: 500000000, targetPenerima: 2500, penanggungJawab: 'Ahmad Fauzi' },
+    create: { id: 'prog-001', nama: 'Program Air Bersih & Wakaf Sumur', pilar: 'Kemanusiaan', paguAnggaran: 500000000, targetPenerima: 2500, penanggungJawab: 'Ahmad Fauzi' },
+  });
+
+  // Seed Transaksi Penerimaan ERP
+  await prisma.transaksiPenerimaan.upsert({
+    where: { noKwitansi: 'KWT/2026/07/014' },
+    update: {
+      noSbmz: 'SBMZ/2026/07/ASK004182',
+      nominal: 12500000,
+      status: 'Terverifikasi',
+      jenisZis: 'Zakat Maal',
+      programNama: 'Zakat Harta Simpanan',
+    },
+    create: {
+      noKwitansi: 'KWT/2026/07/014',
+      noSbmz: 'SBMZ/2026/07/ASK004182',
+      tanggal: '26 Juli 2026',
+      muzakkiId: erpMuzakki.id,
+      jenisZis: 'Zakat Maal',
+      programNama: 'Zakat Harta Simpanan',
+      nominal: 12500000,
+      kanal: 'BSI Virtual Account',
+      rekeningTujuan: 'BSI 7001-ZAKAT-MAAL',
+      status: 'Terverifikasi',
+      catatan: 'Pembayaran zakat maal via web publik.',
+    },
+  });
+
+  // 4. Seed Public Campaigns
+  for (const c of campaignsData) {
+    await prisma.campaign.upsert({
+      where: { slug: c.slug },
+      update: {
+        nama: c.nama,
+        program: c.program,
+        lokasi: c.lokasi,
+        target: c.target,
+        terkumpul: c.terkumpul,
+        donaturCount: c.donaturCount,
+        tenggat: c.tenggat,
+        ringkas: c.ringkas,
+        cerita: c.cerita,
+        imageUrl: c.imageUrl,
+        rincian: c.rincian,
+        kabar: c.kabar,
+        donaturList: c.donaturList,
+        status: c.status,
+        isFeatured: c.isFeatured,
+      },
+      create: c,
+    });
+  }
+  console.log(`✅ ${campaignsData.length} Campaigns seeded`);
+
+  // 5. Seed Distributions
+  for (const d of distributionsData) {
+    await prisma.kabarPenyaluran.upsert({
+      where: { slug: d.slug },
+      update: {
+        judul: d.judul,
+        program: d.program,
+        kampanye: d.kampanye,
+        lokasi: d.lokasi,
+        tgl: d.tgl,
+        nominal: d.nominal,
+        penerima: d.penerima,
+        asnaf: d.asnaf,
+        mitra: d.mitra,
+        status: d.status,
+        ringkas: d.ringkas,
+        isi: d.isi,
+        rincian: d.rincian,
+        imageUrl: d.imageUrl,
+      },
+      create: d,
+    });
+  }
+  console.log(`✅ ${distributionsData.length} Kabar Penyaluran seeded`);
+
+  // 6. Seed Impact Data
+  await prisma.impactData.upsert({
+    where: { id: 'default-impact' },
+    update: {
+      metrics: [
+        { angka: '125.360', satuan: 'jiwa', label: 'Penerima Manfaat Terlayani', keterangan: 'Tersalurkan ke 8 asnaf di 18 provinsi Indonesia', icon: 'Users' },
+        { angka: 'Rp 52,7', satuan: 'Miliar', label: 'Dana ZIS Tersalurkan', keterangan: 'Penyaluran terverifikasi sesuai prinsip syariah', icon: 'BadgeCheck' },
+        { angka: '12.480', satuan: 'pohon', label: 'Pohon Ditanam & Dirawat', keterangan: 'Wakaf Pohon & Konservasi DAS Citarum', icon: 'Trees' },
+        { angka: '36', satuan: 'titik', label: 'Sumur Air Bersih Dibangun', keterangan: 'Wilayah krisis air NTT, NTB, dan Sulawesi', icon: 'Droplets' },
+        { angka: '1.842', satuan: 'anak', label: 'Anak Yatim Kembali Sekolah', keterangan: 'Beasiswa, seragam, dan pendampingan mentor', icon: 'GraduationCap' },
+        { angka: '418', satuan: 'UMKM', label: 'Usaha Mikro Ibu Dhuafa Dibina', keterangan: 'Modal tanpa bunga & pelatihan pembukuan', icon: 'Store' },
+      ],
+      fundAllocations: [
+        { label: 'Program Penyaluran & Penerima Manfaat', percentage: 86.5, percentageLabel: '86,5%', color: '#14509C', description: 'Alokasi langsung untuk 8 asnaf mustahik dan program kemanusiaan.' },
+        { label: 'Hak Amil Pengelola Lembaga', percentage: 7.5, percentageLabel: '7,5%', color: '#C8933A', description: 'Sesuai UU No. 23/2011 & Fatwa MUI (maks. 12,5%).' },
+        { label: 'Operasional UPZ & Kemitraan Lapangan', percentage: 4.0, percentageLabel: '4,0%', color: '#2B6F9E', description: 'Dukungan logistik relawan dan unit pengumpul zakat kantor.' },
+        { label: 'Infrastruktur Digital & Transparansi', percentage: 2.0, percentageLabel: '2,0%', color: '#6D645B', description: 'Sistem akuntansi PSAK 109, web verifikasi, dan audit publik.' },
+      ],
+      beneficiaryStories: [
+        { nama: 'Yohana Tamu', wilayah: 'Sumba Timur, NTT', program: 'Wakaf Sumur', kutipan: 'Dulu kami berjalan dua jam mencari air di sungai keruh. Sekarang sumur mengalir deras di tengah kampung.', peran: 'Ketua Pengelola Sumur Kampung Praiwitu' },
+        { nama: 'Marlina', wilayah: 'Bandung Barat, Jawa Barat', program: 'Modal Usaha Mikro', kutipan: 'Modal awal lima juta dan bimbingan amil membuat warung kecil saya berkembang.', peran: 'Pelaku Usaha Mikro Binaan' },
+      ],
+      annualReports: [
+        { tahun: '2025', judul: 'Laporan Keuangan & Dampak Tahunan 2025', deskripsi: 'Opini Wajar Tanpa Pengecualian (WTP) berdasarkan standar PSAK 109.', ukuranFile: '8.4 MB (PDF)', tanggalTerbit: '15 Maret 2026', auditor: 'KAP Wisnu & Rekan' },
+        { tahun: '2024', judul: 'Laporan Keuangan & Dampak Tahunan 2024', deskripsi: 'Opini Wajar Tanpa Pengecualian (WTP) disertai laporan audit kepatuhan syariah.', ukuranFile: '7.1 MB (PDF)', tanggalTerbit: '20 Februari 2025', auditor: 'KAP Wisnu & Rekan' },
+      ],
+    },
+    create: {
+      id: 'default-impact',
+      metrics: [
+        { angka: '125.360', satuan: 'jiwa', label: 'Penerima Manfaat Terlayani', keterangan: 'Tersalurkan ke 8 asnaf di 18 provinsi Indonesia', icon: 'Users' },
+        { angka: 'Rp 52,7', satuan: 'Miliar', label: 'Dana ZIS Tersalurkan', keterangan: 'Penyaluran terverifikasi sesuai prinsip syariah', icon: 'BadgeCheck' },
+        { angka: '12.480', satuan: 'pohon', label: 'Pohon Ditanam & Dirawat', keterangan: 'Wakaf Pohon & Konservasi DAS Citarum', icon: 'Trees' },
+        { angka: '36', satuan: 'titik', label: 'Sumur Air Bersih Dibangun', keterangan: 'Wilayah krisis air NTT, NTB, dan Sulawesi', icon: 'Droplets' },
+      ],
+      fundAllocations: [
+        { label: 'Program Penyaluran & Penerima Manfaat', percentage: 86.5, percentageLabel: '86,5%', color: '#14509C', description: 'Alokasi langsung untuk 8 asnaf mustahik dan program kemanusiaan.' },
+        { label: 'Hak Amil Pengelola Lembaga', percentage: 7.5, percentageLabel: '7,5%', color: '#C8933A', description: 'Sesuai UU No. 23/2011 & Fatwa MUI (maks. 12,5%).' },
+      ],
+      beneficiaryStories: [],
+      annualReports: [],
+    },
+  });
+  console.log('✅ Impact Data seeded');
+
+  // 7. Seed FAQs
+  await prisma.faqItem.deleteMany({});
+  await prisma.faqItem.createMany({ data: faqItemsData });
+  console.log(`✅ ${faqItemsData.length} FAQ Items seeded`);
+
+  // 8. Seed Muzakki Auth & SBMZ Documents
+  const muzakkiAuth = await prisma.muzakkiAuth.upsert({
+    where: { email: 'ahmad.dahlan@example.com' },
+    update: {
+      nama: 'H. Ahmad Dahlan, S.E.',
+      memberId: 'MZK-2026-0819',
+      phone: '081234567890',
+      alamat: 'Jl. Menteng Raya No. 42, Jakarta Pusat',
+      pekerjaan: 'Direktur Keuangan / Pengusaha',
+      npwp: '01.234.567.8-012.000',
+      nik: '3171021405800003',
+      namaNpwp: 'AHMAD DAHLAN',
+      alamatKpp: 'KPP Pratama Jakarta Menteng Satu',
+      isNpwpVerified: true,
+    },
+    create: {
+      memberId: 'MZK-2026-0819',
+      email: 'ahmad.dahlan@example.com',
+      passwordHash,
+      nama: 'H. Ahmad Dahlan, S.E.',
+      phone: '081234567890',
+      alamat: 'Jl. Menteng Raya No. 42, Jakarta Pusat',
+      pekerjaan: 'Direktur Keuangan / Pengusaha',
+      npwp: '01.234.567.8-012.000',
+      nik: '3171021405800003',
+      namaNpwp: 'AHMAD DAHLAN',
+      alamatKpp: 'KPP Pratama Jakarta Menteng Satu',
+      isNpwpVerified: true,
+    },
+  });
+
+  const sbmzList = [
+    { sbmzNumber: 'SBMZ/2026/07/ASK004182', transactionCode: 'ZIS-20260726-014', tahunPajak: 2026, category: 'Zakat Maal', programTitle: 'Zakat Harta Simpanan (Tabungan & Logam Mulia)', nominal: 12500000, terbilang: 'Dua Belas Juta Lima Ratus Ribu Rupiah', tanggalTerbit: '26 Juli 2026', muzakkiAuthId: muzakkiAuth.id, muzakkiNama: 'H. Ahmad Dahlan, S.E.', muzakkiNpwp: '01.234.567.8-012.000', muzakkiNik: '3171021405800003', muzakkiAlamat: 'Jl. Menteng Raya No. 42, Jakarta Pusat' },
+    { sbmzNumber: 'SBMZ/2026/06/ASK003921', transactionCode: 'ZIS-20260625-089', tahunPajak: 2026, category: 'Zakat Profesi', programTitle: 'Zakat Penghasilan Rutin Juni 2026', nominal: 2500000, terbilang: 'Dua Juta Lima Ratus Ribu Rupiah', tanggalTerbit: '25 Juni 2026', muzakkiAuthId: muzakkiAuth.id, muzakkiNama: 'H. Ahmad Dahlan, S.E.', muzakkiNpwp: '01.234.567.8-012.000', muzakkiNik: '3171021405800003', muzakkiAlamat: 'Jl. Menteng Raya No. 42, Jakarta Pusat' },
+    { sbmzNumber: 'SBMZ/2026/05/ASK003512', transactionCode: 'ZIS-20260525-055', tahunPajak: 2026, category: 'Zakat Profesi', programTitle: 'Zakat Penghasilan Rutin Mei 2026', nominal: 2500000, terbilang: 'Dua Juta Lima Ratus Ribu Rupiah', tanggalTerbit: '25 Mei 2026', muzakkiAuthId: muzakkiAuth.id, muzakkiNama: 'H. Ahmad Dahlan, S.E.', muzakkiNpwp: '01.234.567.8-012.000', muzakkiNik: '3171021405800003', muzakkiAlamat: 'Jl. Menteng Raya No. 42, Jakarta Pusat' },
+  ];
+
+  for (const s of sbmzList) {
+    await prisma.sbmzDoc.upsert({
+      where: { sbmzNumber: s.sbmzNumber },
+      update: s,
+      create: s,
+    });
+  }
+
+  // Seed Recurring Plan
+  await prisma.recurringZis.upsert({
+    where: { id: 'rec-001' },
+    update: { title: 'Zakat Penghasilan Bulanan', category: 'Zakat Profesi', nominal: 2500000, frequency: 'Bulanan', deductDay: 25, paymentMethod: 'BSI Autodebet', status: 'Aktif', nextDeductionDate: '25 Agustus 2026', totalDonated: 12500000 },
+    create: { id: 'rec-001', muzakkiAuthId: muzakkiAuth.id, title: 'Zakat Penghasilan Bulanan', category: 'Zakat Profesi', nominal: 2500000, frequency: 'Bulanan', deductDay: 25, paymentMethod: 'BSI Autodebet', status: 'Aktif', nextDeductionDate: '25 Agustus 2026', totalDonated: 12500000 },
+  });
+
+  // Seed Sample Assistance Submission
+  await prisma.pengajuanBantuan.upsert({
+    where: { submissionNumber: 'PB-2026-0715' },
+    update: {
+      nik: '3204112304890001',
+      namaLengkap: 'Siti Rohimah',
+      asnafCategory: 'Fakir',
+      telepon: '085712345678',
+      alamatLengkap: 'Kp. Sukamaju RT 02/04, Desa Ciburuy',
+      provinsi: 'Jawa Barat',
+      kotaKabupaten: 'Kab. Bandung Barat',
+      pekerjaan: 'Buruh Cuci',
+      penghasilanBulanan: 650000,
+      jumlahTanggungan: 3,
+      kondisiTempatTinggal: 'Menumpang di rumah kerabat',
+      programBantuanDimohon: 'Bantuan Pangan & Pengobatan Balita',
+      estimasiBiayaDibutuhkan: 2500000,
+      status: 'Sedang Disurvei',
+      tahapanProses: [
+        { tahap: 'Formulir Diterima', tanggal: '15 Juli 2026', status: 'Selesai' },
+        { tahap: 'Verifikasi Berkas', tanggal: '16 Juli 2026', status: 'Selesai' },
+        { tahap: 'Survei Lapangan Amil', tanggal: '18 Juli 2026', status: 'Sedang Berjalan' },
+      ],
+    },
+    create: {
+      submissionNumber: 'PB-2026-0715',
+      nik: '3204112304890001',
+      namaLengkap: 'Siti Rohimah',
+      asnafCategory: 'Fakir',
+      telepon: '085712345678',
+      alamatLengkap: 'Kp. Sukamaju RT 02/04, Desa Ciburuy',
+      provinsi: 'Jawa Barat',
+      kotaKabupaten: 'Kab. Bandung Barat',
+      pekerjaan: 'Buruh Cuci',
+      penghasilanBulanan: 650000,
+      jumlahTanggungan: 3,
+      kondisiTempatTinggal: 'Menumpang di rumah kerabat',
+      programBantuanDimohon: 'Bantuan Pangan & Pengobatan Balita',
+      estimasiBiayaDibutuhkan: 2500000,
+      status: 'Sedang Disurvei',
+      tahapanProses: [
+        { tahap: 'Formulir Diterima', tanggal: '15 Juli 2026', status: 'Selesai' },
+        { tahap: 'Verifikasi Berkas', tanggal: '16 Juli 2026', status: 'Selesai' },
+        { tahap: 'Survei Lapangan Amil', tanggal: '18 Juli 2026', status: 'Sedang Berjalan' },
+      ],
+    },
+  });
+
+  console.log('🎉 Comprehensive database seeding completed successfully!');
 }
 
 main()

@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import { prisma } from '../../lib/prisma';
 import { config } from '../../config/environment';
+import { buildNavigation, menuCodesFromNavigation } from '../../lib/access';
 import { LoginInput, VerifyOtpInput } from './auth.schema';
 
 export class AuthService {
@@ -132,6 +133,8 @@ export class AuthService {
     });
 
     const permissions = Array.from(permissionSet);
+    const navigation = await buildNavigation(roles, permissions);
+    const menus = menuCodesFromNavigation(navigation);
 
     // Issue JWT tokens
     const accessTokenOptions: SignOptions = { expiresIn: '1d' };
@@ -181,6 +184,8 @@ export class AuthService {
         nip: user.nip,
         roles,
         permissions,
+        menus,
+        navigation,
       },
     };
   }
@@ -221,6 +226,10 @@ export class AuthService {
       });
     });
 
+    const permissions = Array.from(permissionSet);
+    const navigation = await buildNavigation(roles, permissions);
+    const menus = menuCodesFromNavigation(navigation);
+
     return {
       id: user.id,
       username: user.username,
@@ -231,7 +240,9 @@ export class AuthService {
       isActive: user.isActive,
       isOtpVerified: user.isOtpVerified,
       roles,
-      permissions: Array.from(permissionSet),
+      permissions,
+      menus,
+      navigation,
     };
   }
 

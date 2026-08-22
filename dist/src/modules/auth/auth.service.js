@@ -8,6 +8,7 @@ const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const prisma_1 = require("../../lib/prisma");
 const environment_1 = require("../../config/environment");
+const access_1 = require("../../lib/access");
 class AuthService {
     /**
      * Step 1: Login with username/email & password
@@ -42,14 +43,19 @@ class AuthService {
                 isUsed: false,
             },
         });
-        await prisma_1.prisma.auditTrail.create({
-            data: {
-                userId: user.id,
-                action: 'AUTH_LOGIN_CHALLENGE',
-                details: { challengeId: otpRecord.id },
-                ipAddress,
-            },
-        });
+        try {
+            await prisma_1.prisma.auditTrail.create({
+                data: {
+                    userId: user.id,
+                    action: 'AUTH_LOGIN_CHALLENGE',
+                    details: { challengeId: otpRecord.id },
+                    ipAddress,
+                },
+            });
+        }
+        catch (auditErr) {
+            console.warn('Audit trail logging warning (login):', auditErr);
+        }
         return {
             challengeId: otpRecord.id,
             message: 'Kredensial valid. Silakan masukkan kode OTP 5 digit (Dummy OTP: 00000).',
@@ -114,6 +120,8 @@ class AuthService {
             });
         });
         const permissions = Array.from(permissionSet);
+        const navigation = await (0, access_1.buildNavigation)(roles, permissions);
+        const menus = (0, access_1.menuCodesFromNavigation)(navigation);
         // Issue JWT tokens
         const accessTokenOptions = { expiresIn: '1d' };
         const refreshTokenOptions = { expiresIn: '7d' };
@@ -124,14 +132,19 @@ class AuthService {
             roles,
         }, environment_1.config.jwtSecret, accessTokenOptions);
         const refreshToken = jsonwebtoken_1.default.sign({ userId: user.id }, environment_1.config.jwtRefreshSecret, refreshTokenOptions);
-        await prisma_1.prisma.auditTrail.create({
-            data: {
-                userId: user.id,
-                action: 'AUTH_VERIFY_OTP_SUCCESS',
-                details: { roles },
-                ipAddress,
-            },
-        });
+        try {
+            await prisma_1.prisma.auditTrail.create({
+                data: {
+                    userId: user.id,
+                    action: 'AUTH_VERIFY_OTP_SUCCESS',
+                    details: { roles },
+                    ipAddress,
+                },
+            });
+        }
+        catch (auditErr) {
+            console.warn('Audit trail logging warning (verifyOtp):', auditErr);
+        }
         return {
             accessToken,
             refreshToken,
@@ -146,6 +159,8 @@ class AuthService {
                 nip: user.nip,
                 roles,
                 permissions,
+                menus,
+                navigation,
             },
         };
     }
@@ -181,6 +196,9 @@ class AuthService {
                 permissionSet.add(rp.permission.kodePermission);
             });
         });
+        const permissions = Array.from(permissionSet);
+        const navigation = await (0, access_1.buildNavigation)(roles, permissions);
+        const menus = (0, access_1.menuCodesFromNavigation)(navigation);
         return {
             id: user.id,
             username: user.username,
@@ -191,7 +209,9 @@ class AuthService {
             isActive: user.isActive,
             isOtpVerified: user.isOtpVerified,
             roles,
-            permissions: Array.from(permissionSet),
+            permissions,
+            menus,
+            navigation,
         };
     }
     /**
