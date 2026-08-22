@@ -3,6 +3,7 @@ import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import { prisma } from '../../lib/prisma';
 import { config } from '../../config/environment';
 import { LoginInput, VerifyOtpInput } from './auth.schema';
+import { buildNavigation, flattenAccess, menuCodesFromNavigation } from '../../lib/access';
 
 export class AuthService {
   /**
@@ -122,16 +123,8 @@ export class AuthService {
     });
 
     const user = otpRecord.user;
-    const roles = user.userRoles.map((ur) => ur.role.kodeRole);
-    const permissionSet = new Set<string>();
-
-    user.userRoles.forEach((ur) => {
-      ur.role.rolePermissions.forEach((rp) => {
-        permissionSet.add(rp.permission.kodePermission);
-      });
-    });
-
-    const permissions = Array.from(permissionSet);
+    const { roles, permissions } = flattenAccess(user.userRoles);
+    const navigation = await buildNavigation(roles, permissions);
 
     // Issue JWT tokens
     const accessTokenOptions: SignOptions = { expiresIn: '1d' };
@@ -181,6 +174,8 @@ export class AuthService {
         nip: user.nip,
         roles,
         permissions,
+        menus: menuCodesFromNavigation(navigation),
+        navigation,
       },
     };
   }
@@ -212,14 +207,8 @@ export class AuthService {
       throw { statusCode: 404, message: 'User tidak ditemukan.' };
     }
 
-    const roles = user.userRoles.map((ur) => ur.role.kodeRole);
-    const permissionSet = new Set<string>();
-
-    user.userRoles.forEach((ur) => {
-      ur.role.rolePermissions.forEach((rp) => {
-        permissionSet.add(rp.permission.kodePermission);
-      });
-    });
+    const { roles, permissions } = flattenAccess(user.userRoles);
+    const navigation = await buildNavigation(roles, permissions);
 
     return {
       id: user.id,
@@ -231,7 +220,9 @@ export class AuthService {
       isActive: user.isActive,
       isOtpVerified: user.isOtpVerified,
       roles,
-      permissions: Array.from(permissionSet),
+      permissions,
+      menus: menuCodesFromNavigation(navigation),
+      navigation,
     };
   }
 
