@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteRecurringPlan = exports.toggleRecurringPlanStatus = exports.createMuzakkiRecurringPlan = exports.getMuzakkiRecurringPlans = exports.getMuzakkiSbmzList = exports.updateMuzakkiProfile = exports.muzakkiRegister = exports.muzakkiLogin = exports.checkAssistanceStatus = exports.submitAssistance = exports.verifyDocument = exports.getReceiptData = exports.updatePaymentStatus = exports.getPaymentStatus = exports.createDonationPayment = exports.askFaqAssistant = exports.getFaqs = exports.getImpactSummary = exports.getDistributionBySlug = exports.getDistributions = exports.getCampaignBySlug = exports.getFeaturedCampaigns = exports.getCampaigns = void 0;
+exports.getPublicWebSettings = exports.getPublicTestimonials = exports.getPublicHeroSliders = exports.deleteRecurringPlan = exports.toggleRecurringPlanStatus = exports.createMuzakkiRecurringPlan = exports.getMuzakkiRecurringPlans = exports.getMuzakkiSbmzList = exports.updateMuzakkiProfile = exports.muzakkiRegister = exports.muzakkiLogin = exports.checkAssistanceStatus = exports.submitAssistance = exports.verifyDocument = exports.getReceiptData = exports.updatePaymentStatus = exports.getPaymentStatus = exports.createDonationPayment = exports.askFaqAssistant = exports.getFaqs = exports.getImpactSummary = exports.getDistributionBySlug = exports.getDistributions = exports.getCampaignBySlug = exports.getFeaturedCampaigns = exports.getCampaigns = void 0;
 const prisma_1 = require("../../lib/prisma");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 // ==========================================
@@ -435,7 +435,8 @@ exports.getReceiptData = getReceiptData;
 // ==========================================
 const verifyDocument = async (req, res) => {
     try {
-        const cleanCode = String(req.params.code).trim();
+        const rawCode = (req.params.code || req.query.code || '');
+        const cleanCode = decodeURIComponent(rawCode).trim();
         // Check SbmzDoc table
         const sbmz = await prisma_1.prisma.sbmzDoc.findFirst({
             where: {
@@ -758,3 +759,42 @@ const deleteRecurringPlan = async (req, res) => {
     }
 };
 exports.deleteRecurringPlan = deleteRecurringPlan;
+// ==========================================
+// 8. PUBLIC CONTENT: HERO SLIDERS, TESTIMONIALS, SETTINGS
+// ==========================================
+const getPublicHeroSliders = async (req, res) => {
+    try {
+        const sliders = await prisma_1.prisma.heroSlider.findMany({
+            where: { isActive: true },
+            orderBy: { order: 'asc' },
+        });
+        return res.status(200).json(sliders);
+    }
+    catch (error) {
+        return res.status(500).json({ success: false, message: 'Gagal mengambil data slider hero.' });
+    }
+};
+exports.getPublicHeroSliders = getPublicHeroSliders;
+const getPublicTestimonials = async (req, res) => {
+    try {
+        const testimonials = await prisma_1.prisma.testimonial.findMany({
+            where: { isPublished: true },
+            orderBy: { order: 'asc' },
+        });
+        return res.status(200).json(testimonials);
+    }
+    catch (error) {
+        return res.status(500).json({ success: false, message: 'Gagal mengambil data testimoni.' });
+    }
+};
+exports.getPublicTestimonials = getPublicTestimonials;
+const getPublicWebSettings = async (req, res) => {
+    try {
+        const settings = await prisma_1.prisma.webSetting.findFirst();
+        return res.status(200).json(settings);
+    }
+    catch (error) {
+        return res.status(500).json({ success: false, message: 'Gagal mengambil pengaturan web.' });
+    }
+};
+exports.getPublicWebSettings = getPublicWebSettings;

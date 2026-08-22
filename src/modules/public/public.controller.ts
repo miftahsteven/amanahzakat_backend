@@ -803,3 +803,40 @@ export const deleteRecurringPlan = async (req: Request, res: Response) => {
     return res.status(500).json({ success: false, message: 'Gagal menghapus jadwal recurring.' });
   }
 };
+
+// ==========================================
+// 8. PUBLIC CONTENT: HERO SLIDERS, TESTIMONIALS, SETTINGS
+// ==========================================
+export const getPublicHeroSliders = async (req: Request, res: Response) => {
+  try {
+    const sliders = await prisma.heroSlider.findMany({
+      where: { isActive: true },
+      orderBy: { order: 'asc' },
+    });
+    return res.status(200).json(sliders);
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Gagal mengambil data slider hero.' });
+  }
+};
+
+export const getPublicTestimonials = async (req: Request, res: Response) => {
+  try {
+    const testimonials = await prisma.testimonial.findMany({
+      where: { isPublished: true },
+      orderBy: { order: 'asc' },
+    });
+    return res.status(200).json(testimonials);
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Gagal mengambil data testimoni.' });
+  }
+};
+
+export const getPublicWebSettings = async (req: Request, res: Response) => {
+  try {
+    const settings = await prisma.webSetting.findFirst();
+    return res.status(200).json(settings);
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Gagal mengambil pengaturan web.' });
+  }
+};
+

@@ -12,10 +12,11 @@ const prisma = new client_1.PrismaClient();
 const modulesData = [
     { kodeModul: 'IKHTISAR', namaModul: 'IKHTISAR', urutan: 1 },
     { kodeModul: 'OPERASIONAL_ZIS', namaModul: 'OPERASIONAL ZIS', urutan: 2 },
-    { kodeModul: 'KEUANGAN', namaModul: 'KEUANGAN & AKUNTANSI', urutan: 3 },
-    { kodeModul: 'PERALATAN', namaModul: 'PERALATAN', urutan: 4 },
-    { kodeModul: 'PEMBERITAHUAN', namaModul: 'PEMBERITAHUAN', urutan: 5 },
-    { kodeModul: 'PENGATURAN', namaModul: 'PENGATURAN SISTEM', urutan: 6 },
+    { kodeModul: 'KONTEN_WEB', namaModul: 'MANAJEMEN KONTEN WEB', urutan: 3 },
+    { kodeModul: 'KEUANGAN', namaModul: 'KEUANGAN & AKUNTANSI', urutan: 4 },
+    { kodeModul: 'PERALATAN', namaModul: 'PERALATAN', urutan: 5 },
+    { kodeModul: 'PEMBERITAHUAN', namaModul: 'PEMBERITAHUAN', urutan: 6 },
+    { kodeModul: 'PENGATURAN', namaModul: 'PENGATURAN SISTEM', urutan: 7 },
 ];
 const read = (nama) => [{ aksi: 'read', nama }];
 const menusData = [
@@ -32,6 +33,14 @@ const menusData = [
     { kodeModul: 'OPERASIONAL_ZIS', kodeMenu: 'upz', namaMenu: 'Dashboard UPZ Cabang', kodeTampil: 'UP', icon: 'Landmark', urutan: 7, actions: [...read('Lihat Dashboard UPZ'), { aksi: 'update', nama: 'Ubah Data UPZ' }] },
     { kodeModul: 'OPERASIONAL_ZIS', kodeMenu: 'payroll', namaMenu: 'Payroll UPZ', kodeTampil: 'PL', icon: 'Banknote', urutan: 8, actions: [...read('Lihat Payroll UPZ'), { aksi: 'update', nama: 'Proses Payroll UPZ' }] },
     { kodeModul: 'OPERASIONAL_ZIS', kodeMenu: 'mustahik', namaMenu: 'Data Mustahik & Scoring', kodeTampil: 'MS', icon: 'UserRoundSearch', urutan: 9, actions: [...read('Lihat Data Mustahik'), { aksi: 'create', nama: 'Tambah Mustahik' }, { aksi: 'update', nama: 'Ubah Mustahik' }, { aksi: 'delete', nama: 'Hapus Mustahik' }] },
+    { kodeModul: 'KONTEN_WEB', kodeMenu: 'cms-hero', namaMenu: 'Hero Slider & Banner', kodeTampil: 'HS', icon: 'Sliders', urutan: 1, actions: [...read('Lihat Hero Slider'), { aksi: 'create', nama: 'Tambah Hero Slider' }, { aksi: 'update', nama: 'Ubah Hero Slider' }, { aksi: 'delete', nama: 'Hapus Hero Slider' }] },
+    { kodeModul: 'KONTEN_WEB', kodeMenu: 'cms-campaigns', namaMenu: 'Program & Kampanye ZIS', kodeTampil: 'KP', icon: 'FolderKanban', urutan: 2, actions: [...read('Lihat Kampanye CMS'), { aksi: 'create', nama: 'Tambah Kampanye' }, { aksi: 'update', nama: 'Ubah Kampanye' }, { aksi: 'delete', nama: 'Hapus Kampanye' }] },
+    { kodeModul: 'KONTEN_WEB', kodeMenu: 'cms-distributions', namaMenu: 'Kabar Penyaluran Lapangan', kodeTampil: 'KB', icon: 'FileBarChart', urutan: 3, actions: [...read('Lihat Kabar Penyaluran CMS'), { aksi: 'create', nama: 'Tambah Kabar' }, { aksi: 'update', nama: 'Ubah Kabar' }, { aksi: 'delete', nama: 'Hapus Kabar' }] },
+    { kodeModul: 'KONTEN_WEB', kodeMenu: 'cms-testimonials', namaMenu: 'Testimoni & Kisah Nyata', kodeTampil: 'TM', icon: 'HeartHandshake', urutan: 4, actions: [...read('Lihat Testimoni CMS'), { aksi: 'create', nama: 'Tambah Testimoni' }, { aksi: 'update', nama: 'Ubah Testimoni' }, { aksi: 'delete', nama: 'Hapus Testimoni' }] },
+    { kodeModul: 'KONTEN_WEB', kodeMenu: 'cms-faqs', namaMenu: 'Kelola FAQ & Ustaz Digital', kodeTampil: 'FQ', icon: 'Info', urutan: 5, actions: [...read('Lihat FAQ CMS'), { aksi: 'create', nama: 'Tambah FAQ' }, { aksi: 'update', nama: 'Ubah FAQ' }, { aksi: 'delete', nama: 'Hapus FAQ' }] },
+    { kodeModul: 'KONTEN_WEB', kodeMenu: 'cms-impact', namaMenu: 'Laporan Dampak & Audit', kodeTampil: 'DP', icon: 'FileBarChart', urutan: 6, actions: [...read('Lihat Dampak CMS'), { aksi: 'update', nama: 'Ubah Laporan Dampak' }] },
+    { kodeModul: 'KONTEN_WEB', kodeMenu: 'cms-assistance', namaMenu: 'Verifikasi Permohonan Mustahik', kodeTampil: 'PB', icon: 'UserRoundSearch', urutan: 7, actions: [...read('Lihat Pengajuan Bantuan'), { aksi: 'verify', nama: 'Verifikasi / Survei Permohonan' }] },
+    { kodeModul: 'KONTEN_WEB', kodeMenu: 'cms-settings', namaMenu: 'Pengaturan Web Publik', kodeTampil: 'PW', icon: 'Globe2', urutan: 8, actions: [...read('Lihat Pengaturan Web'), { aksi: 'update', nama: 'Ubah Pengaturan Web' }] },
     { kodeModul: 'KEUANGAN', kodeMenu: 'jurnal', namaMenu: 'Pencatatan Jurnal & G/L PSAK 109', kodeTampil: 'JR', icon: 'BookOpen', urutan: 1, actions: [...read('Lihat Jurnal & G/L'), { aksi: 'create', nama: 'Catat Jurnal' }] },
     { kodeModul: 'KEUANGAN', kodeMenu: 'closing', namaMenu: 'Closing Periode Akuntansi', kodeTampil: 'CL', icon: 'Lock', urutan: 2, actions: [...read('Lihat Closing Periode'), { aksi: 'execute', nama: 'Eksekusi Closing Periode' }] },
     { kodeModul: 'KEUANGAN', kodeMenu: 'simba', namaMenu: 'Export Paket SIMBA BAZNAS', kodeTampil: 'SB', icon: 'Package', urutan: 3, actions: [...read('Lihat Export SIMBA'), { aksi: 'export', nama: 'Ekspor Paket SIMBA' }] },
@@ -733,6 +742,165 @@ async function main() {
             ],
         },
     });
+    // 9. Seed Hero Sliders
+    const heroSlidersData = [
+        {
+            id: 1,
+            title: 'Wujudkan Ekosistem Berkelanjutan Lewat Green Zakat',
+            subtitle: 'Salurkan zakat dan wakaf untuk pemulihan daerah aliran sungai, lumbung pangan dhuafa, dan air bersih pelosok nusantara.',
+            tag: 'ZAKAT BERDAYA LINGKUNGAN',
+            ctaText: 'Tunaikan Zakat',
+            ctaLink: '/donasi',
+            secondaryCtaText: 'Lihat Program Hijau',
+            secondaryCtaLink: '/kampanye?category=Konservasi+DAS+Citarum',
+            imageUrl: '/images/hero_slide_green_zakat.jpg',
+            badge: 'Program Unggulan',
+            badgeColor: '#0B9D6D',
+            isActive: true,
+            order: 1,
+        },
+        {
+            id: 2,
+            title: 'Kebaikan Tanpa Batas, Menjangkau Pelosok Negeri',
+            subtitle: 'Tiap rupiah zakat Anda disalurkan secara amanah, profesional, dan dapat diverifikasi langsung melalui sistem bukti setor sah SBMZ.',
+            tag: 'AMANAH & TRANSPARAN',
+            ctaText: 'Donasi Sekarang',
+            ctaLink: '/kampanye',
+            secondaryCtaText: 'Laporan Dampak',
+            secondaryCtaLink: '/dampak',
+            imageUrl: '/images/hero_slide_kebaikan.jpg',
+            badge: 'Audit WTP 2025',
+            badgeColor: '#14509C',
+            isActive: true,
+            order: 2,
+        },
+        {
+            id: 3,
+            title: 'Darurat Kemanusiaan: Bantuan Pangan & Medis Mustahik',
+            subtitle: 'Bantu saudara kita yang membutuhkan pangan pokok, pemenuhan gizi balita cegah stunting, dan beasiswa yatim dhuafa.',
+            tag: 'RESPON KEMANUSIAAN CEPAT',
+            ctaText: 'Bantu Sekarang',
+            ctaLink: '/donasi?campaign=balita-stunting',
+            secondaryCtaText: 'Kabar Penyaluran',
+            secondaryCtaLink: '/kabar-penyaluran',
+            imageUrl: '/images/hero_slide_palestina.jpg',
+            badge: 'Tanggap Bencana',
+            badgeColor: '#C8933A',
+            isActive: true,
+            order: 3,
+        },
+    ];
+    for (const h of heroSlidersData) {
+        await prisma.heroSlider.upsert({
+            where: { id: h.id },
+            update: h,
+            create: h,
+        });
+    }
+    console.log(`✅ ${heroSlidersData.length} Hero Sliders seeded`);
+    // 10. Seed Testimonials
+    const testimonialsData = [
+        {
+            id: 'testi-001',
+            name: 'H. Ahmad Dahlan, S.E.',
+            role: 'Muzakki Prioritas',
+            location: 'Jakarta Pusat',
+            program: 'Zakat Maal & Wakaf',
+            quote: 'Sangat memudahkan menunaikan zakat harta dengan kalkulator akurat, serta dokumen SBMZ yang langsung terbit resmi untuk pengurang pajak tahunan.',
+            avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+            rating: 5,
+            isPublished: true,
+            order: 1,
+        },
+        {
+            id: 'testi-002',
+            name: 'Ibu Siti Rohimah',
+            role: 'Mustahik Binaan',
+            location: 'Bandung Barat',
+            program: 'Modal Usaha Mikro Dhuafa',
+            quote: 'Alhamdulillah, berkat bantuan modal bergulir tanpa riba dan pendampingan pembukuan dari AmanahZakat, warung kami bisa berkembang dan membiayai sekolah anak.',
+            avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80',
+            rating: 5,
+            isPublished: true,
+            order: 2,
+        },
+        {
+            id: 'testi-003',
+            name: 'Yohana Tamu',
+            role: 'Tokoh Masyarakat',
+            location: 'Sumba Timur, NTT',
+            program: 'Wakaf Sumur Air Bersih',
+            quote: 'Dulu warga harus berjalan kaki 2 jam di tengah kemarau. Kini sumur bor mengalir deras di tengah kampung kami. Terima kasih para muzakki AmanahZakat.',
+            avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
+            rating: 5,
+            isPublished: true,
+            order: 3,
+        },
+        {
+            id: 'testi-004',
+            name: 'Dr. Hendra Gunawan',
+            role: 'Donatur Rutin (Auto-Recurring)',
+            location: 'Surabaya',
+            program: 'Qurban & Beasiswa Yatim',
+            quote: 'Fitur autodebet bulanan sangat praktis. Laporan penyaluran rutin via WhatsApp dan email membuat kita tenang karena tahu dana tersalurkan tepat sasaran.',
+            avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80',
+            rating: 5,
+            isPublished: true,
+            order: 4,
+        },
+    ];
+    for (const t of testimonialsData) {
+        await prisma.testimonial.upsert({
+            where: { id: t.id },
+            update: t,
+            create: t,
+        });
+    }
+    console.log(`✅ ${testimonialsData.length} Testimonials seeded`);
+    // 11. Seed Web Setting
+    await prisma.webSetting.upsert({
+        where: { id: 'default-setting' },
+        update: {
+            siteName: 'AmanahZakat Peduli',
+            siteTagline: 'Lembaga Amil Zakat Nasional — Amanah, Transparan & Berdaya Dampak',
+            contactPhone: '0811-2100-900',
+            contactEmail: 'layanan@amanahzakat.or.id',
+            contactAddress: 'Gedung Menara Amanah Lt. 4, Jl. TB Simatupang No. 18, Jakarta Selatan 12520',
+            socialLinks: {
+                instagram: 'https://instagram.com/amanahzakat',
+                facebook: 'https://facebook.com/amanahzakat',
+                youtube: 'https://youtube.com/@amanahzakat',
+                whatsapp: 'https://wa.me/628112100900',
+            },
+            bankAccounts: [
+                { bank: 'Bank Syariah Indonesia (BSI)', noRekening: '7001-2345-67', atasNama: 'LAZNAS AmanahZakat Peduli - Zakat', jenis: 'Zakat' },
+                { bank: 'Bank Syariah Indonesia (BSI)', noRekening: '7002-3456-78', atasNama: 'LAZNAS AmanahZakat Peduli - Infak', jenis: 'Infak/Sedekah' },
+                { bank: 'Bank Central Asia (BCA)', noRekening: '5420-9988-77', atasNama: 'LAZNAS AmanahZakat Peduli', jenis: 'Operasional' },
+                { bank: 'Bank Mandiri', noRekening: '127-00-1122334-4', atasNama: 'LAZNAS AmanahZakat Peduli - Wakaf', jenis: 'Wakaf' },
+            ],
+        },
+        create: {
+            id: 'default-setting',
+            siteName: 'AmanahZakat Peduli',
+            siteTagline: 'Lembaga Amil Zakat Nasional — Amanah, Transparan & Berdaya Dampak',
+            contactPhone: '0811-2100-900',
+            contactEmail: 'layanan@amanahzakat.or.id',
+            contactAddress: 'Gedung Menara Amanah Lt. 4, Jl. TB Simatupang No. 18, Jakarta Selatan 12520',
+            socialLinks: {
+                instagram: 'https://instagram.com/amanahzakat',
+                facebook: 'https://facebook.com/amanahzakat',
+                youtube: 'https://youtube.com/@amanahzakat',
+                whatsapp: 'https://wa.me/628112100900',
+            },
+            bankAccounts: [
+                { bank: 'Bank Syariah Indonesia (BSI)', noRekening: '7001-2345-67', atasNama: 'LAZNAS AmanahZakat Peduli - Zakat', jenis: 'Zakat' },
+                { bank: 'Bank Syariah Indonesia (BSI)', noRekening: '7002-3456-78', atasNama: 'LAZNAS AmanahZakat Peduli - Infak', jenis: 'Infak/Sedekah' },
+                { bank: 'Bank Central Asia (BCA)', noRekening: '5420-9988-77', atasNama: 'LAZNAS AmanahZakat Peduli', jenis: 'Operasional' },
+                { bank: 'Bank Mandiri', noRekening: '127-00-1122334-4', atasNama: 'LAZNAS AmanahZakat Peduli - Wakaf', jenis: 'Wakaf' },
+            ],
+        },
+    });
+    console.log('✅ Web Settings seeded');
     console.log('🎉 Comprehensive database seeding completed successfully!');
 }
 main()
