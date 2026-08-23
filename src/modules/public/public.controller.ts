@@ -120,7 +120,7 @@ export const getCampaignBySlug = async (req: Request, res: Response) => {
 export const getDistributions = async (req: Request, res: Response) => {
   try {
     const { program, q } = req.query;
-    let whereClause: any = {};
+    let whereClause: any = { status: 'Terbit' };
 
     if (program && program !== 'Semua') {
       whereClause.program = { equals: String(program), mode: 'insensitive' };
@@ -143,6 +143,33 @@ export const getDistributions = async (req: Request, res: Response) => {
     return res.status(200).json(list);
   } catch (error: any) {
     return res.status(500).json({ success: false, message: 'Gagal mengambil kabar penyaluran.' });
+  }
+};
+
+export const getDistributionStats = async (req: Request, res: Response) => {
+  try {
+    const { program } = req.query;
+    const whereClause: any = { status: 'Terbit' };
+
+    if (program && program !== 'Semua') {
+      whereClause.program = { equals: String(program), mode: 'insensitive' };
+    }
+
+    const [totalReports, aggregate] = await Promise.all([
+      prisma.kabarPenyaluran.count({ where: whereClause }),
+      prisma.kabarPenyaluran.aggregate({
+        where: whereClause,
+        _sum: { nominal: true, penerima: true },
+      }),
+    ]);
+
+    return res.status(200).json({
+      totalReports,
+      totalAmount: aggregate._sum.nominal ?? 0,
+      totalBeneficiaries: aggregate._sum.penerima ?? 0,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Gagal mengambil statistik kabar penyaluran.' });
   }
 };
 

@@ -7,6 +7,7 @@ import {
   getFeaturedCampaigns,
   getCampaignBySlug,
   getDistributions,
+  getDistributionStats,
   getDistributionBySlug,
   getImpactSummary,
   getFaqs,
@@ -87,6 +88,7 @@ router.get('/settings', getPublicWebSettings);
 
 // 3. Distributions & Impact
 router.get('/distributions', getDistributions);
+router.get('/distributions/stats', getDistributionStats);
 router.get('/distributions/:slug', getDistributionBySlug);
 router.get('/impact/summary', getImpactSummary);
 
