@@ -6,6 +6,9 @@ import publicRouter from './modules/public/public.router';
 import cmsRouter from './modules/cms/cms.router';
 import penerimaanRouter from './modules/penerimaan/penerimaan.router';
 import muzakkiRouter from './modules/muzakki/muzakki.router';
+import penyaluranRouter from './modules/penyaluran/penyaluran.router';
+import mustahikRouter from './modules/mustahik/mustahik.router';
+import programRouter from './modules/program/program.router';
 
 const router = Router();
 
@@ -27,5 +30,8 @@ router.use('/public', publicRouter);
 router.use('/cms', cmsRouter);
 router.use('/penerimaan', penerimaanRouter);
 router.use('/muzakki', muzakkiRouter);
+router.use('/penyaluran', penyaluranRouter);
+router.use('/mustahik', mustahikRouter);
+router.use('/program', programRouter);
 
 export default router;

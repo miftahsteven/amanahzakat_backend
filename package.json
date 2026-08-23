@@ -16,6 +16,7 @@
     "prisma:seed": "ts-node-dev --transpile-only --no-notify prisma/seed.ts",
     "prisma:seed:penerimaan": "ts-node-dev --transpile-only --no-notify prisma/seed-penerimaan.ts",
     "prisma:seed:campaigns": "ts-node-dev --transpile-only --no-notify prisma/seed-campaigns.ts",
+    "prisma:seed:penyaluran": "ts-node-dev --transpile-only --no-notify prisma/seed-penyaluran.ts",
     "postinstall": "prisma generate"
   },
   "keywords": [
