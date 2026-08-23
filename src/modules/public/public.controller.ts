@@ -2,6 +2,12 @@ import { Request, Response } from 'express';
 import { prisma } from '../../lib/prisma';
 import bcrypt from 'bcryptjs';
 import { sendRegistrationOtpEmail } from '../../services/email.service';
+import { normalizeCreateDonationBody, toPaymentInstructionResponse } from '../../lib/donation-web';
+import {
+  finalizePenerimaanFromWeb,
+  incrementCampaignStatsIfLinked,
+  syncPendingPenerimaanFromWeb,
+} from '../../lib/penerimaan-sync';
 
 // In-Memory OTP Store for Registrations (TTL: 5 Minutes)
 interface PendingOtpRegistration {
@@ -253,23 +259,13 @@ export const askFaqAssistant = async (req: Request, res: Response) => {
 // ==========================================
 export const createDonationPayment = async (req: Request, res: Response) => {
   try {
-    const {
-      campaignId,
-      campaignSlug,
-      campaignTitle,
-      fundType,
-      amount,
-      paymentMethod,
-      donorName,
-      donorEmail,
-      donorPhone,
-      isAnonymous,
-      message,
-    } = req.body;
+    const input = normalizeCreateDonationBody(req.body);
 
-    const nominal = Number(amount) || 50000;
-    const uniqueCode = Math.floor(Math.random() * 900) + 100;
-    const totalAmount = nominal + uniqueCode;
+    const uniqueCode =
+      input.paymentMethod === 'BANK_TRANSFER'
+        ? Math.floor(Math.random() * 900) + 100
+        : 0;
+    const totalAmount = input.amount + uniqueCode;
     const dateStr = new Date().toISOString().slice(2, 10).replace(/-/g, '');
     const randNum = Math.floor(1000 + Math.random() * 9000);
     const transactionId = `ZIS-${dateStr}-${randNum}`;
@@ -277,50 +273,40 @@ export const createDonationPayment = async (req: Request, res: Response) => {
     let paymentCode = '98801' + Math.floor(10000000 + Math.random() * 90000000);
     let qrPayload: string | undefined = undefined;
 
-    if (paymentMethod === 'QRIS') {
+    if (input.paymentMethod === 'QRIS') {
       paymentCode = 'ID1020021' + Math.floor(10000000 + Math.random() * 90000000);
       qrPayload = `00020101021226600016ID.CO.AMANAHZAKAT01189360091100223344550215${transactionId}5802ID5303360540${totalAmount}5802ID6304`;
     }
 
-    const expiredAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    const expiredAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const newDonation = await prisma.donasiWeb.create({
       data: {
         transactionId,
-        campaignId: campaignId ? Number(campaignId) : undefined,
-        campaignSlug: campaignSlug || 'donasi-umum',
-        campaignTitle: campaignTitle || 'Donasi Umum & Zakat',
-        fundType: fundType || 'Zakat Maal',
-        amount: nominal,
+        campaignId: input.campaignId,
+        campaignSlug: input.campaignSlug,
+        campaignTitle: input.campaignTitle,
+        fundType: input.fundType,
+        amount: input.amount,
         uniqueCode,
         totalAmount,
-        paymentMethod: paymentMethod || 'VIRTUAL_ACCOUNT',
-        paymentProvider: paymentMethod === 'QRIS' ? 'QRIS' : 'BSI',
+        paymentMethod: input.paymentMethod,
+        paymentProvider: input.paymentMethod === 'QRIS' ? 'QRIS' : 'BSI',
         paymentCode,
         qrPayload,
-        donorName: donorName || 'Hamba Allah',
-        donorEmail,
-        donorPhone,
-        isAnonymous: Boolean(isAnonymous),
-        message,
+        donorName: input.donorName,
+        donorEmail: input.donorEmail,
+        donorPhone: input.donorPhone,
+        isAnonymous: input.isAnonymous,
+        message: input.message,
         status: 'PENDING',
         expiredAt,
       },
     });
 
-    return res.status(201).json({
-      transactionId: newDonation.transactionId,
-      amount: newDonation.amount,
-      uniqueCode: newDonation.uniqueCode,
-      totalAmount: newDonation.totalAmount,
-      paymentMethod: newDonation.paymentMethod,
-      paymentProvider: newDonation.paymentProvider,
-      paymentCode: newDonation.paymentCode,
-      qrPayload: newDonation.qrPayload,
-      expiredAt: newDonation.expiredAt.toISOString(),
-      campaignTitle: newDonation.campaignTitle,
-      donorName: newDonation.donorName,
-    });
+    await syncPendingPenerimaanFromWeb(newDonation);
+
+    return res.status(201).json(toPaymentInstructionResponse(newDonation));
   } catch (error: any) {
     console.error('Error creating donation payment:', error);
     return res.status(500).json({ success: false, message: 'Gagal membuat instruksi pembayaran.' });
@@ -338,7 +324,7 @@ export const getPaymentStatus = async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: 'Transaksi tidak ditemukan.' });
     }
 
-    return res.status(200).json(donation);
+    return res.status(200).json(toPaymentInstructionResponse(donation));
   } catch (error: any) {
     return res.status(500).json({ success: false, message: 'Gagal memeriksa status pembayaran.' });
   }
@@ -347,7 +333,7 @@ export const getPaymentStatus = async (req: Request, res: Response) => {
 export const updatePaymentStatus = async (req: Request, res: Response) => {
   try {
     const transactionId = String(req.params.transactionId);
-    const { status } = req.body; // e.g. "PAID"
+    const { status } = req.body;
 
     const existing = await prisma.donasiWeb.findUnique({
       where: { transactionId },
@@ -358,8 +344,17 @@ export const updatePaymentStatus = async (req: Request, res: Response) => {
     }
 
     const isSuccess = status === 'PAID' || status === 'SUCCESS';
-    const sbmzNumber = isSuccess ? `SBMZ/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/ASK${Math.floor(100000 + Math.random() * 900000)}` : null;
-    const noKwitansi = isSuccess ? `KWT/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${Math.floor(1000 + Math.random() * 9000)}` : null;
+
+    if (existing.status === 'PAID' && isSuccess) {
+      return res.status(200).json(toPaymentInstructionResponse(existing));
+    }
+
+    const sbmzNumber = isSuccess
+      ? `SBMZ/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/ASK${Math.floor(100000 + Math.random() * 900000)}`
+      : null;
+    const noKwitansi = isSuccess
+      ? `KWT/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${Math.floor(1000 + Math.random() * 9000)}`
+      : null;
 
     const updated = await prisma.donasiWeb.update({
       where: { transactionId },
@@ -371,75 +366,12 @@ export const updatePaymentStatus = async (req: Request, res: Response) => {
       },
     });
 
-    // If payment succeeded:
     if (isSuccess) {
-      // 1. Update Campaign Stats if linked
-      if (existing.campaignId) {
-        await prisma.campaign.update({
-          where: { id: existing.campaignId },
-          data: {
-            terkumpul: { increment: existing.amount },
-            donaturCount: { increment: 1 },
-          },
-        });
-      }
-
-      // 2. Automate ERP Muzakki & TransaksiPenerimaan Creation!
-      let erpMuzakki = await prisma.muzakki.findFirst({
-        where: {
-          OR: [
-            { email: existing.donorEmail || 'non-existent-email@test.com' },
-            { hp: existing.donorPhone || 'non-existent-phone' },
-            { nama: existing.donorName },
-          ],
-        },
-      });
-
-      if (!erpMuzakki) {
-        const randMzkNum = `MZK-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
-        erpMuzakki = await prisma.muzakki.create({
-          data: {
-            nomor: randMzkNum,
-            nama: existing.donorName,
-            tipe: 'Perorangan',
-            nikAtauNpwp: 'Terlampir pada Form Web',
-            hp: existing.donorPhone || '0812XXXXXXXX',
-            email: existing.donorEmail || `${existing.donorName.toLowerCase().replace(/\s+/g, '')}@donatur.com`,
-            alamat: 'Indonesia (Donasi Online Web)',
-            totalSetoran: existing.amount,
-            transaksiCount: 1,
-            tanggalBergabung: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
-          },
-        });
-      } else {
-        await prisma.muzakki.update({
-          where: { id: erpMuzakki.id },
-          data: {
-            totalSetoran: { increment: existing.amount },
-            transaksiCount: { increment: 1 },
-          },
-        });
-      }
-
-      // Record in ERP TransaksiPenerimaan
-      await prisma.transaksiPenerimaan.create({
-        data: {
-          noKwitansi: noKwitansi!,
-          noSbmz: sbmzNumber,
-          tanggal: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
-          muzakkiId: erpMuzakki.id,
-          jenisZis: existing.fundType,
-          programNama: existing.campaignTitle,
-          nominal: existing.amount,
-          kanal: `${existing.paymentProvider} ${existing.paymentMethod}`,
-          rekeningTujuan: 'Rekening ZIS AmanahZakat',
-          status: 'Terverifikasi',
-          catatan: `Pembayaran online web ${existing.transactionId}${existing.message ? ` — Pesan: ${existing.message}` : ''}`,
-        },
-      });
+      await incrementCampaignStatsIfLinked(updated);
+      await finalizePenerimaanFromWeb(updated);
     }
 
-    return res.status(200).json(updated);
+    return res.status(200).json(toPaymentInstructionResponse(updated));
   } catch (error: any) {
     console.error('Error updating payment status:', error);
     return res.status(500).json({ success: false, message: 'Gagal memperbarui status pembayaran.' });
