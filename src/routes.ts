@@ -2,6 +2,8 @@ import { Router } from 'express';
 import authRouter from './modules/auth/auth.router';
 import userRouter from './modules/users/user.router';
 import aclRouter from './modules/acl/acl.router';
+import publicRouter from './modules/public/public.router';
+import cmsRouter from './modules/cms/cms.router';
 
 const router = Router();
 
@@ -19,5 +21,7 @@ router.get('/health', (req, res) => {
 router.use('/auth', authRouter);
 router.use('/users', userRouter);
 router.use('/acl', aclRouter);
+router.use('/public', publicRouter);
+router.use('/cms', cmsRouter);
 
 export default router;

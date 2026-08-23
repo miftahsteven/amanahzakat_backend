@@ -2,8 +2,8 @@ import bcrypt from 'bcryptjs';
 import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import { prisma } from '../../lib/prisma';
 import { config } from '../../config/environment';
-import { LoginInput, VerifyOtpInput } from './auth.schema';
 import { buildNavigation, flattenAccess, menuCodesFromNavigation } from '../../lib/access';
+import { LoginInput, VerifyOtpInput } from './auth.schema';
 
 export class AuthService {
   /**

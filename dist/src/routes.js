@@ -7,6 +7,8 @@ const express_1 = require("express");
 const auth_router_1 = __importDefault(require("./modules/auth/auth.router"));
 const user_router_1 = __importDefault(require("./modules/users/user.router"));
 const acl_router_1 = __importDefault(require("./modules/acl/acl.router"));
+const public_router_1 = __importDefault(require("./modules/public/public.router"));
+const cms_router_1 = __importDefault(require("./modules/cms/cms.router"));
 const router = (0, express_1.Router)();
 // API Health Check
 router.get('/health', (req, res) => {
@@ -21,4 +23,6 @@ router.get('/health', (req, res) => {
 router.use('/auth', auth_router_1.default);
 router.use('/users', user_router_1.default);
 router.use('/acl', acl_router_1.default);
+router.use('/public', public_router_1.default);
+router.use('/cms', cms_router_1.default);
 exports.default = router;

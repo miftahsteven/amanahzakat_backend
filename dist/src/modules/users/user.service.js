@@ -85,12 +85,22 @@ class UserService {
             },
         });
         if (data.roleIds && data.roleIds.length > 0) {
-            await prisma_1.prisma.userRole.createMany({
-                data: data.roleIds.map((roleId) => ({
-                    userId: user.id,
-                    roleId,
-                })),
+            const roles = await prisma_1.prisma.role.findMany({
+                where: {
+                    OR: [
+                        { id: { in: data.roleIds } },
+                        { kodeRole: { in: data.roleIds } },
+                    ],
+                },
             });
+            if (roles.length > 0) {
+                await prisma_1.prisma.userRole.createMany({
+                    data: roles.map((r) => ({
+                        userId: user.id,
+                        roleId: r.id,
+                    })),
+                });
+            }
         }
         return this.getUserById(user.id);
     }
@@ -114,12 +124,22 @@ class UserService {
         if (data.roleIds !== undefined) {
             await prisma_1.prisma.userRole.deleteMany({ where: { userId: id } });
             if (data.roleIds.length > 0) {
-                await prisma_1.prisma.userRole.createMany({
-                    data: data.roleIds.map((roleId) => ({
-                        userId: id,
-                        roleId,
-                    })),
+                const roles = await prisma_1.prisma.role.findMany({
+                    where: {
+                        OR: [
+                            { id: { in: data.roleIds } },
+                            { kodeRole: { in: data.roleIds } },
+                        ],
+                    },
                 });
+                if (roles.length > 0) {
+                    await prisma_1.prisma.userRole.createMany({
+                        data: roles.map((r) => ({
+                            userId: id,
+                            roleId: r.id,
+                        })),
+                    });
+                }
             }
         }
         return this.getUserById(id);
