@@ -9,6 +9,7 @@ import muzakkiRouter from './modules/muzakki/muzakki.router';
 import penyaluranRouter from './modules/penyaluran/penyaluran.router';
 import mustahikRouter from './modules/mustahik/mustahik.router';
 import programRouter from './modules/program/program.router';
+import mitraRouter from './modules/mitra/mitra.router';
 
 const router = Router();
 
@@ -33,5 +34,6 @@ router.use('/muzakki', muzakkiRouter);
 router.use('/penyaluran', penyaluranRouter);
 router.use('/mustahik', mustahikRouter);
 router.use('/program', programRouter);
+router.use('/mitra', mitraRouter);
 
 export default router;
