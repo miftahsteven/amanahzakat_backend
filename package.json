@@ -9,8 +9,11 @@
     "prestart": "npm run build",
     "start": "node dist/server.js",
     "prisma:generate": "prisma generate",
-    "prisma:push": "prisma db push",
-    "prisma:seed": "ts-node-dev prisma/seed.ts",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:migrate:status": "prisma migrate status",
+    "prisma:baseline": "prisma migrate resolve --applied 20260815000000_init_baseline",
+    "prisma:seed": "ts-node-dev --transpile-only --no-notify prisma/seed.ts",
     "postinstall": "prisma generate"
   },
   "keywords": [
@@ -24,6 +27,9 @@
   ],
   "author": "Amanah Zakat Dev Team",
   "license": "ISC",
+  "prisma": {
+    "seed": "ts-node-dev --transpile-only --no-notify prisma/seed.ts"
+  },
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "bcryptjs": "^2.4.3",

@@ -7,10 +7,10 @@ const router = Router();
 
 router.use(authenticateJWT);
 
-router.get('/', checkPermission('user.manage'), UserController.getUsers);
-router.get('/:id', checkPermission('user.manage'), UserController.getUserById);
-router.post('/', checkPermission('user.manage'), UserController.createUser);
-router.patch('/:id', checkPermission('user.manage'), UserController.updateUser);
-router.delete('/:id', checkPermission('user.manage'), UserController.deleteUser);
+router.get('/', checkPermission('user-management.read'), UserController.getUsers);
+router.get('/:id', checkPermission('user-management.read'), UserController.getUserById);
+router.post('/', checkPermission('user-management.manage'), UserController.createUser);
+router.patch('/:id', checkPermission('user-management.manage'), UserController.updateUser);
+router.delete('/:id', checkPermission('user-management.manage'), UserController.deleteUser);
 
 export default router;
