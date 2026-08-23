@@ -5,7 +5,7 @@
     "lib": ["ES2022"],
     "allowJs": false,
     "outDir": "./dist",
-    "rootDir": "./",
+    "rootDir": "./src",
     "strict": true,
     "noImplicitAny": false,
     "strictNullChecks": true,
@@ -17,5 +17,5 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src/**/*", "prisma/**/*"]
+  "include": ["src/**/*"]
 }

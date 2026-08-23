@@ -112,16 +112,8 @@ class AuthService {
             data: { isOtpVerified: true },
         });
         const user = otpRecord.user;
-        const roles = user.userRoles.map((ur) => ur.role.kodeRole);
-        const permissionSet = new Set();
-        user.userRoles.forEach((ur) => {
-            ur.role.rolePermissions.forEach((rp) => {
-                permissionSet.add(rp.permission.kodePermission);
-            });
-        });
-        const permissions = Array.from(permissionSet);
+        const { roles, permissions } = (0, access_1.flattenAccess)(user.userRoles);
         const navigation = await (0, access_1.buildNavigation)(roles, permissions);
-        const menus = (0, access_1.menuCodesFromNavigation)(navigation);
         // Issue JWT tokens
         const accessTokenOptions = { expiresIn: '1d' };
         const refreshTokenOptions = { expiresIn: '7d' };
@@ -159,7 +151,7 @@ class AuthService {
                 nip: user.nip,
                 roles,
                 permissions,
-                menus,
+                menus: (0, access_1.menuCodesFromNavigation)(navigation),
                 navigation,
             },
         };
@@ -189,16 +181,8 @@ class AuthService {
         if (!user) {
             throw { statusCode: 404, message: 'User tidak ditemukan.' };
         }
-        const roles = user.userRoles.map((ur) => ur.role.kodeRole);
-        const permissionSet = new Set();
-        user.userRoles.forEach((ur) => {
-            ur.role.rolePermissions.forEach((rp) => {
-                permissionSet.add(rp.permission.kodePermission);
-            });
-        });
-        const permissions = Array.from(permissionSet);
+        const { roles, permissions } = (0, access_1.flattenAccess)(user.userRoles);
         const navigation = await (0, access_1.buildNavigation)(roles, permissions);
-        const menus = (0, access_1.menuCodesFromNavigation)(navigation);
         return {
             id: user.id,
             username: user.username,
@@ -210,7 +194,7 @@ class AuthService {
             isOtpVerified: user.isOtpVerified,
             roles,
             permissions,
-            menus,
+            menus: (0, access_1.menuCodesFromNavigation)(navigation),
             navigation,
         };
     }

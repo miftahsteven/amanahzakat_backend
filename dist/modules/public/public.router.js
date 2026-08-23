@@ -63,7 +63,12 @@ router.get('/verification/:code(*)', public_controller_1.verifyDocument);
 // 7. Assistance Mustahik (Public Quick Submit & Tracking)
 router.post('/assistance/submit', public_controller_1.submitAssistance);
 router.get('/assistance/check/:nikOrCode', public_controller_1.checkAssistanceStatus);
-// 8. Muzakki Portal
+// 8. Auth & Login (Unified) & OTP Registration
+router.post('/auth/login', public_controller_1.authLogin);
+router.post('/auth/send-register-otp', public_controller_1.sendRegisterOtp);
+router.post('/auth/verify-register-otp', public_controller_1.verifyRegisterOtp);
+router.post('/auth/resend-register-otp', public_controller_1.resendRegisterOtp);
+// 9. Muzakki Portal
 router.post('/muzakki/login', public_controller_1.muzakkiLogin);
 router.post('/muzakki/register', public_controller_1.muzakkiRegister);
 router.put('/muzakki/profile', public_controller_1.updateMuzakkiProfile);
