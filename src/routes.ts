@@ -5,6 +5,7 @@ import aclRouter from './modules/acl/acl.router';
 import publicRouter from './modules/public/public.router';
 import cmsRouter from './modules/cms/cms.router';
 import penerimaanRouter from './modules/penerimaan/penerimaan.router';
+import muzakkiRouter from './modules/muzakki/muzakki.router';
 
 const router = Router();
 
@@ -25,5 +26,6 @@ router.use('/acl', aclRouter);
 router.use('/public', publicRouter);
 router.use('/cms', cmsRouter);
 router.use('/penerimaan', penerimaanRouter);
+router.use('/muzakki', muzakkiRouter);
 
 export default router;
