@@ -15,6 +15,7 @@
     "prisma:baseline": "prisma migrate resolve --applied 20260815000000_init_baseline",
     "prisma:seed": "ts-node-dev --transpile-only --no-notify prisma/seed.ts",
     "prisma:seed:penerimaan": "ts-node-dev --transpile-only --no-notify prisma/seed-penerimaan.ts",
+    "prisma:seed:campaigns": "ts-node-dev --transpile-only --no-notify prisma/seed-campaigns.ts",
     "postinstall": "prisma generate"
   },
   "keywords": [
