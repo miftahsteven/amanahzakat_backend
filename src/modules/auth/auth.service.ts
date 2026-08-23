@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import { prisma } from '../../lib/prisma';
 import { config } from '../../config/environment';
-import { buildNavigation, menuCodesFromNavigation } from '../../lib/access';
+import { buildNavigation, flattenAccess, menuCodesFromNavigation } from '../../lib/access';
 import { LoginInput, VerifyOtpInput } from './auth.schema';
 
 export class AuthService {
@@ -123,18 +123,8 @@ export class AuthService {
     });
 
     const user = otpRecord.user;
-    const roles = user.userRoles.map((ur) => ur.role.kodeRole);
-    const permissionSet = new Set<string>();
-
-    user.userRoles.forEach((ur) => {
-      ur.role.rolePermissions.forEach((rp) => {
-        permissionSet.add(rp.permission.kodePermission);
-      });
-    });
-
-    const permissions = Array.from(permissionSet);
+    const { roles, permissions } = flattenAccess(user.userRoles);
     const navigation = await buildNavigation(roles, permissions);
-    const menus = menuCodesFromNavigation(navigation);
 
     // Issue JWT tokens
     const accessTokenOptions: SignOptions = { expiresIn: '1d' };
@@ -184,7 +174,7 @@ export class AuthService {
         nip: user.nip,
         roles,
         permissions,
-        menus,
+        menus: menuCodesFromNavigation(navigation),
         navigation,
       },
     };
@@ -217,18 +207,8 @@ export class AuthService {
       throw { statusCode: 404, message: 'User tidak ditemukan.' };
     }
 
-    const roles = user.userRoles.map((ur) => ur.role.kodeRole);
-    const permissionSet = new Set<string>();
-
-    user.userRoles.forEach((ur) => {
-      ur.role.rolePermissions.forEach((rp) => {
-        permissionSet.add(rp.permission.kodePermission);
-      });
-    });
-
-    const permissions = Array.from(permissionSet);
+    const { roles, permissions } = flattenAccess(user.userRoles);
     const navigation = await buildNavigation(roles, permissions);
-    const menus = menuCodesFromNavigation(navigation);
 
     return {
       id: user.id,
@@ -241,7 +221,7 @@ export class AuthService {
       isOtpVerified: user.isOtpVerified,
       roles,
       permissions,
-      menus,
+      menus: menuCodesFromNavigation(navigation),
       navigation,
     };
   }
