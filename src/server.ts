@@ -6,17 +6,23 @@ import { config } from './config/environment';
 import apiRouter from './routes';
 import { errorHandler } from './middlewares/error.middleware';
 
+import path from 'path';
+
 const app = express();
 
 // Security & Utility Middlewares
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
+// Static Uploads Directory
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
 // Mount Main API Routes
 app.use('/api/v1', apiRouter);
+
 
 // 404 Fallback
 app.use((req, res) => {

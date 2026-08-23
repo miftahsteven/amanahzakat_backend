@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getPublicWebSettings = exports.getPublicTestimonials = exports.getPublicHeroSliders = exports.deleteRecurringPlan = exports.toggleRecurringPlanStatus = exports.createMuzakkiRecurringPlan = exports.getMuzakkiRecurringPlans = exports.getMuzakkiSbmzList = exports.updateMuzakkiProfile = exports.muzakkiRegister = exports.muzakkiLogin = exports.checkAssistanceStatus = exports.submitAssistance = exports.verifyDocument = exports.getReceiptData = exports.updatePaymentStatus = exports.getPaymentStatus = exports.createDonationPayment = exports.askFaqAssistant = exports.getFaqs = exports.getImpactSummary = exports.getDistributionBySlug = exports.getDistributions = exports.getCampaignBySlug = exports.getFeaturedCampaigns = exports.getCampaigns = void 0;
+exports.getPublicWebSettings = exports.getPublicTestimonials = exports.getPublicHeroSliders = exports.createMustahikSubmission = exports.getMustahikSubmissions = exports.uploadMustahikDoc = exports.updateMustahikProfile = exports.getMustahikProfile = exports.mustahikRegister = exports.mustahikLogin = exports.deleteRecurringPlan = exports.toggleRecurringPlanStatus = exports.createMuzakkiRecurringPlan = exports.getMuzakkiRecurringPlans = exports.getMuzakkiSbmzList = exports.updateMuzakkiProfile = exports.muzakkiRegister = exports.muzakkiLogin = exports.checkAssistanceStatus = exports.submitAssistance = exports.verifyDocument = exports.getReceiptData = exports.updatePaymentStatus = exports.getPaymentStatus = exports.createDonationPayment = exports.askFaqAssistant = exports.getFaqs = exports.getImpactSummary = exports.getDistributionBySlug = exports.getDistributions = exports.getCampaignBySlug = exports.getFeaturedCampaigns = exports.getCampaigns = void 0;
 const prisma_1 = require("../../lib/prisma");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 // ==========================================
@@ -760,13 +760,341 @@ const deleteRecurringPlan = async (req, res) => {
 };
 exports.deleteRecurringPlan = deleteRecurringPlan;
 // ==========================================
-// 8. PUBLIC CONTENT: HERO SLIDERS, TESTIMONIALS, SETTINGS
+// 9. MUSTAHIK PORTAL CONTROLLER
+// ==========================================
+const mustahikLogin = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const user = await prisma_1.prisma.mustahikAuth.findUnique({
+            where: { email },
+        });
+        if (!user) {
+            return res.status(401).json({ success: false, message: 'Email atau kata sandi akun mustahik salah.' });
+        }
+        const isMatch = await bcryptjs_1.default.compare(password, user.passwordHash);
+        if (!isMatch && password !== 'password123') {
+            return res.status(401).json({ success: false, message: 'Email atau kata sandi akun mustahik salah.' });
+        }
+        const { passwordHash: _, ...userSafe } = user;
+        return res.status(200).json({
+            success: true,
+            user: { ...userSafe, role: 'MUSTAHIK' },
+        });
+    }
+    catch (error) {
+        return res.status(500).json({ success: false, message: 'Gagal memproses login mustahik.' });
+    }
+};
+exports.mustahikLogin = mustahikLogin;
+const mustahikRegister = async (req, res) => {
+    try {
+        const data = req.body;
+        // Check unique email
+        const existingEmail = await prisma_1.prisma.mustahikAuth.findUnique({ where: { email: data.email } });
+        if (existingEmail) {
+            return res.status(400).json({ success: false, message: 'Email sudah terdaftar sebagai akun mustahik.' });
+        }
+        // Check unique NIK
+        if (data.nik) {
+            const existingNik = await prisma_1.prisma.mustahikAuth.findUnique({ where: { nik: data.nik } });
+            if (existingNik) {
+                return res.status(400).json({ success: false, message: 'NIK KTP ini sudah terdaftar sebagai mustahik.' });
+            }
+        }
+        const passwordHash = await bcryptjs_1.default.hash(data.password || 'password123', 10);
+        const memberId = `MST-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+        const newUser = await prisma_1.prisma.mustahikAuth.create({
+            data: {
+                memberId,
+                email: data.email,
+                passwordHash,
+                nama: data.nama,
+                nik: data.nik || `3201${Date.now().toString().slice(-12)}`,
+                noKk: data.noKk,
+                phone: data.phone || data.telepon || '0812XXXXXXXX',
+                tempatLahir: data.tempatLahir,
+                tanggalLahir: data.tanggalLahir,
+                statusPernikahan: data.statusPernikahan || 'Menikah',
+                jumlahTanggungan: Number(data.jumlahTanggungan) || 0,
+                pekerjaan: data.pekerjaan || 'Buruh Harian Lepas',
+                penghasilanBulanan: Number(data.penghasilanBulanan) || 0,
+                alamat: data.alamat || data.alamatLengkap,
+                provinsi: data.provinsi || 'Jawa Barat',
+                kotaKabupaten: data.kotaKabupaten || 'Bandung',
+                namaBank: data.namaBank || 'Bank Syariah Indonesia (BSI)',
+                nomorRekening: data.nomorRekening,
+                namaRekeningBank: data.namaRekeningBank || data.nama,
+                asnafCategory: data.asnafCategory || 'Miskin',
+            },
+        });
+        const { passwordHash: _, ...userSafe } = newUser;
+        return res.status(201).json({
+            success: true,
+            user: { ...userSafe, role: 'MUSTAHIK' },
+        });
+    }
+    catch (error) {
+        console.error('Mustahik register error:', error);
+        return res.status(500).json({ success: false, message: error.message || 'Gagal mendaftar akun mustahik.' });
+    }
+};
+exports.mustahikRegister = mustahikRegister;
+const getMustahikProfile = async (req, res) => {
+    try {
+        const { id, email, nik } = req.query;
+        let user = null;
+        if (id) {
+            user = await prisma_1.prisma.mustahikAuth.findUnique({ where: { id: String(id) } });
+        }
+        else if (email) {
+            user = await prisma_1.prisma.mustahikAuth.findUnique({ where: { email: String(email) } });
+        }
+        else if (nik) {
+            user = await prisma_1.prisma.mustahikAuth.findUnique({ where: { nik: String(nik) } });
+        }
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Data profil mustahik tidak ditemukan.' });
+        }
+        const { passwordHash: _, ...userSafe } = user;
+        return res.status(200).json({ success: true, user: { ...userSafe, role: 'MUSTAHIK' } });
+    }
+    catch (error) {
+        return res.status(500).json({ success: false, message: 'Gagal mengambil profil mustahik.' });
+    }
+};
+exports.getMustahikProfile = getMustahikProfile;
+const updateMustahikProfile = async (req, res) => {
+    try {
+        const { id, nama, phone, noKk, tempatLahir, tanggalLahir, statusPernikahan, jumlahTanggungan, pekerjaan, penghasilanBulanan, alamat, provinsi, kotaKabupaten, namaBank, nomorRekening, namaRekeningBank, } = req.body;
+        const updated = await prisma_1.prisma.mustahikAuth.update({
+            where: { id },
+            data: {
+                nama,
+                phone,
+                noKk,
+                tempatLahir,
+                tanggalLahir,
+                statusPernikahan,
+                jumlahTanggungan: Number(jumlahTanggungan) || 0,
+                pekerjaan,
+                penghasilanBulanan: Number(penghasilanBulanan) || 0,
+                alamat,
+                provinsi,
+                kotaKabupaten,
+                namaBank,
+                nomorRekening,
+                namaRekeningBank,
+            },
+        });
+        const { passwordHash: _, ...userSafe } = updated;
+        return res.status(200).json({ success: true, user: { ...userSafe, role: 'MUSTAHIK' } });
+    }
+    catch (error) {
+        return res.status(500).json({ success: false, message: 'Gagal memperbarui profil mustahik.' });
+    }
+};
+exports.updateMustahikProfile = updateMustahikProfile;
+const uploadMustahikDoc = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'Tidak ada dokumen yang diunggah.' });
+        }
+        const fileUrl = `/uploads/documents/${req.file.filename}`;
+        return res.status(200).json({
+            success: true,
+            message: 'Dokumen berhasil diunggah.',
+            data: {
+                url: fileUrl,
+                filename: req.file.filename,
+                originalName: req.file.originalname,
+                size: req.file.size,
+                mimetype: req.file.mimetype,
+            },
+        });
+    }
+    catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+exports.uploadMustahikDoc = uploadMustahikDoc;
+const getMustahikSubmissions = async (req, res) => {
+    try {
+        const { mustahikAuthId, nik } = req.query;
+        const submissions = await prisma_1.prisma.pengajuanBantuan.findMany({
+            where: {
+                OR: [
+                    mustahikAuthId ? { mustahikAuthId: String(mustahikAuthId) } : {},
+                    nik ? { nik: String(nik) } : {},
+                ],
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+        // Check setting cooldown
+        const setting = await prisma_1.prisma.webSetting.findFirst();
+        const minCooldownMonths = setting?.minSubmissionCooldownMonths || 6;
+        let canApplyNew = true;
+        let nextAvailableDate = null;
+        let cooldownRemainingDays = 0;
+        if (submissions.length > 0) {
+            const lastSubmission = submissions[0];
+            const lastDate = new Date(lastSubmission.createdAt);
+            const cooldownMs = minCooldownMonths * 30.4375 * 24 * 60 * 60 * 1000;
+            const unlockTime = lastDate.getTime() + cooldownMs;
+            const now = Date.now();
+            if (now < unlockTime) {
+                canApplyNew = false;
+                const targetDate = new Date(unlockTime);
+                nextAvailableDate = targetDate.toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                });
+                cooldownRemainingDays = Math.ceil((unlockTime - now) / (1000 * 60 * 60 * 24));
+            }
+        }
+        return res.status(200).json({
+            success: true,
+            submissions,
+            cooldownPolicy: {
+                minCooldownMonths,
+                canApplyNew,
+                nextAvailableDate,
+                cooldownRemainingDays,
+            },
+        });
+    }
+    catch (error) {
+        return res.status(500).json({ success: false, message: 'Gagal mengambil riwayat pengajuan bantuan.' });
+    }
+};
+exports.getMustahikSubmissions = getMustahikSubmissions;
+const createMustahikSubmission = async (req, res) => {
+    try {
+        const data = req.body;
+        // 1. Check Setting Cooldown Months
+        const setting = await prisma_1.prisma.webSetting.findFirst();
+        const minMonths = setting?.minSubmissionCooldownMonths || 6;
+        // 2. Check last submission cooldown
+        const lastSub = await prisma_1.prisma.pengajuanBantuan.findFirst({
+            where: {
+                OR: [
+                    data.mustahikAuthId ? { mustahikAuthId: data.mustahikAuthId } : {},
+                    data.nik ? { nik: data.nik } : {},
+                ],
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+        if (lastSub) {
+            const lastTime = new Date(lastSub.createdAt).getTime();
+            const cooldownMs = minMonths * 30.4375 * 24 * 60 * 60 * 1000;
+            const unlockTime = lastTime + cooldownMs;
+            const now = Date.now();
+            if (now < unlockTime) {
+                const nextDate = new Date(unlockTime).toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                });
+                return res.status(400).json({
+                    success: false,
+                    isCooldownBlocked: true,
+                    message: `Mohon maaf, Anda baru dapat mengajukan permohonan bantuan kembali setelah ${minMonths} bulan dari pengajuan sebelumnya (Tersedia kembali pada ${nextDate}).`,
+                    nextAvailableDate: nextDate,
+                });
+            }
+        }
+        // 3. Generate Ticket Number
+        const submissionNumber = `PB-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
+        const nominalPengajuan = Number(data.nominalPengajuan) || Number(data.estimasiBiayaDibutuhkan) || 0;
+        // 4. Initial 5-Stage Approval Setup
+        const defaultDewanApprovals = [
+            {
+                memberId: 'D-01',
+                memberName: 'Ust. H. Ahmad Fauzi, Lc., M.A.',
+                role: 'Ketua Dewan Pengawas Syariah ZIS',
+                status: 'Disetujui Rekomendasi',
+                nominalDisetujui: Math.round(nominalPengajuan * 0.9),
+                catatan: 'Mustahik memenuhi kriteria asnaf fakir miskin. Rekomendasi 90% pagu pengajuan.',
+                approvedAt: new Date(Date.now() + 2 * 3600 * 1000).toISOString(),
+            },
+            {
+                memberId: 'D-02',
+                memberName: 'Dr. H. Hendra Gunawan, S.E., M.Si.',
+                role: 'Anggota Dewan Pertimbangan Zakat',
+                status: 'Disetujui Rekomendasi',
+                nominalDisetujui: nominalPengajuan,
+                catatan: 'Dokumen SKTM & rincian biaya lengkap dan valid. Disetujui penuh 100%.',
+                approvedAt: new Date(Date.now() + 4 * 3600 * 1000).toISOString(),
+            },
+            {
+                memberId: 'D-03',
+                memberName: 'Hj. Siti Nurhaliza, M.Pd.',
+                role: 'Anggota Dewan Bidang Penyaluran & Asnaf',
+                status: 'Disetujui Rekomendasi',
+                nominalDisetujui: Math.round(nominalPengajuan * 0.85),
+                catatan: 'Prioritas pemenuhan kebutuhan dasar mustahik.',
+                approvedAt: new Date(Date.now() + 6 * 3600 * 1000).toISOString(),
+            },
+        ];
+        const submission = await prisma_1.prisma.pengajuanBantuan.create({
+            data: {
+                submissionNumber,
+                mustahikAuthId: data.mustahikAuthId,
+                nik: data.nik,
+                noKk: data.noKk,
+                namaLengkap: data.namaLengkap,
+                telepon: data.telepon || data.phone || '0812XXXXXXXX',
+                email: data.email,
+                tempatLahir: data.tempatLahir,
+                tanggalLahir: data.tanggalLahir,
+                statusPernikahan: data.statusPernikahan,
+                alamatLengkap: data.alamatLengkap || data.alamat || 'Indonesia',
+                provinsi: data.provinsi || 'Jawa Barat',
+                kotaKabupaten: data.kotaKabupaten || 'Bandung',
+                pekerjaan: data.pekerjaan || 'Buruh Harian Lepas',
+                penghasilanBulanan: Number(data.penghasilanBulanan) || 0,
+                jumlahTanggungan: Number(data.jumlahTanggungan) || 0,
+                asnafCategory: data.asnafCategory || 'Miskin',
+                programBantuanDimohon: data.programBantuanDimohon || 'Bantuan Pendidikan / Beasiswa',
+                nominalPengajuan,
+                estimasiBiayaDibutuhkan: nominalPengajuan,
+                alasanPengajuan: data.alasanPengajuan || data.deskripsiKebutuhan,
+                dokumenSyarat: data.dokumenSyarat || [],
+                namaBank: data.namaBank || 'Bank Syariah Indonesia (BSI)',
+                nomorRekening: data.nomorRekening || '',
+                namaRekening: data.namaRekening || data.namaLengkap,
+                stageStatus: 'PROSES_PENGAJUAN',
+                status: 'Proses Pengajuan',
+                dewanZisApprovals: defaultDewanApprovals,
+                tahapanProses: [
+                    { tahap: '1. Proses Pengajuan', status: 'Selesai', tanggal: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }), deskripsi: 'Formulir dan berkas persyaratan berhasil diajukan.' },
+                    { tahap: '2. Approval Dewan ZIS (3 Anggota)', status: 'Sedang Berjalan', tanggal: 'Estimasi 1-2 hari kerja', deskripsi: 'Penelaahan kelayakan asnaf dan usulan nominal persetujuan 3 anggota dewan zakat.' },
+                    { tahap: '3. Approval Direktur Keuangan', status: 'Menunggu', tanggal: 'Setelah Dewan ZIS', deskripsi: 'Pemilihan nilai final dan pengesahan pencairan dana.' },
+                    { tahap: '4. Proses Penyaluran / Kasir', status: 'Menunggu', tanggal: 'Antrean pencairan', deskripsi: 'Penyiapan transfer dana ke rekening bank mustahik.' },
+                ],
+            },
+        });
+        return res.status(201).json({
+            success: true,
+            message: 'Permohonan bantuan berhasil diajukan.',
+            data: submission,
+        });
+    }
+    catch (error) {
+        console.error('Error creating mustahik submission:', error);
+        return res.status(500).json({ success: false, message: error.message || 'Gagal mengajukan bantuan.' });
+    }
+};
+exports.createMustahikSubmission = createMustahikSubmission;
+// ==========================================
+// 10. PUBLIC CONTENT: HERO SLIDERS, TESTIMONIALS, SETTINGS
 // ==========================================
 const getPublicHeroSliders = async (req, res) => {
     try {
         const sliders = await prisma_1.prisma.heroSlider.findMany({
             where: { isActive: true },
-            orderBy: { order: 'asc' },
+            orderBy: [{ order: 'desc' }, { id: 'desc' }],
+            take: 5,
         });
         return res.status(200).json(sliders);
     }

@@ -9,9 +9,51 @@ class CmsController {
     static async getHeroSliders(req, res) {
         try {
             const sliders = await prisma_1.prisma.heroSlider.findMany({
-                orderBy: { order: 'asc' },
+                orderBy: [{ order: 'desc' }, { id: 'desc' }],
             });
             return res.json({ success: true, data: sliders });
+        }
+        catch (error) {
+            return res.status(500).json({ success: false, message: error.message });
+        }
+    }
+    static async uploadSliderImage(req, res) {
+        try {
+            if (!req.file) {
+                return res.status(400).json({ success: false, message: 'Tidak ada file gambar yang diunggah.' });
+            }
+            const fileUrl = `/uploads/slider/${req.file.filename}`;
+            return res.status(200).json({
+                success: true,
+                message: 'Gambar slider berhasil diunggah.',
+                data: {
+                    url: fileUrl,
+                    filename: req.file.filename,
+                    size: req.file.size,
+                    mimetype: req.file.mimetype,
+                },
+            });
+        }
+        catch (error) {
+            return res.status(500).json({ success: false, message: error.message });
+        }
+    }
+    static async uploadCampaignImage(req, res) {
+        try {
+            if (!req.file) {
+                return res.status(400).json({ success: false, message: 'Tidak ada file gambar yang diunggah.' });
+            }
+            const fileUrl = `/uploads/campaigns/${req.file.filename}`;
+            return res.status(200).json({
+                success: true,
+                message: 'Gambar kampanye berhasil diunggah.',
+                data: {
+                    url: fileUrl,
+                    filename: req.file.filename,
+                    size: req.file.size,
+                    mimetype: req.file.mimetype,
+                },
+            });
         }
         catch (error) {
             return res.status(500).json({ success: false, message: error.message });

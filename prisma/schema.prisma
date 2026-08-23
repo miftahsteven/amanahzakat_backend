@@ -493,29 +493,84 @@ model RecurringZis {
   updatedAt         DateTime    @updatedAt
 }
 
-model PengajuanBantuan {
-  id                     String   @id @default(cuid())
-  submissionNumber       String   @unique // e.g. PB-2026-0819
-  nik                    String
-  namaLengkap            String
-  asnafCategory          String
-  telepon                String
-  email                  String?
-  alamatLengkap          String
-  provinsi               String
-  kotaKabupaten          String
-  pekerjaan              String
-  penghasilanBulanan     Float
-  jumlahTanggungan       Int
-  kondisiTempatTinggal   String
-  programBantuanDimohon  String
-  estimasiBiayaDibutuhkan Float
-  status                 String   @default("Menunggu Verifikasi")
-  surveiNotes            String?
-  tahapanProses          Json
+model MustahikAuth {
+  id                 String              @id @default(cuid())
+  memberId           String              @unique // e.g. MST-2026-0819
+  email              String              @unique
+  passwordHash       String
+  nama               String
+  nik                String              @unique
+  noKk               String?
+  phone              String
+  tempatLahir        String?
+  tanggalLahir       String?
+  statusPernikahan   String?
+  jumlahTanggungan   Int                 @default(0)
+  pekerjaan          String?
+  penghasilanBulanan Float               @default(0)
+  alamat             String?
+  provinsi           String?
+  kotaKabupaten      String?
+  namaBank           String?
+  nomorRekening      String?
+  namaRekeningBank   String?
+  asnafCategory      String              @default("Miskin")
+  
+  pengajuanList      PengajuanBantuan[]
 
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+}
+
+model PengajuanBantuan {
+  id                      String        @id @default(cuid())
+  submissionNumber        String        @unique // e.g. PB-2026-0819-001
+  mustahikAuthId          String?
+  mustahikAuth            MustahikAuth? @relation(fields: [mustahikAuthId], references: [id], onDelete: SetNull)
+  nik                     String
+  noKk                    String?
+  namaLengkap             String
+  telepon                 String
+  email                   String?
+  tempatLahir             String?
+  tanggalLahir            String?
+  statusPernikahan        String?
+  alamatLengkap           String
+  provinsi                String?
+  kotaKabupaten           String?
+  pekerjaan               String?
+  penghasilanBulanan      Float         @default(0)
+  jumlahTanggungan        Int           @default(0)
+  kondisiTempatTinggal    String?
+  asnafCategory           String        @default("Miskin")
+  programBantuanDimohon   String        // Beasiswa, Kesehatan, Modal Usaha, Pangan, Bencana
+  nominalPengajuan        Float         @default(0)
+  estimasiBiayaDibutuhkan Float         @default(0)
+  alasanPengajuan         String?
+  dokumenSyarat           Json?         // Array dokumen upload: [{ nama, url, tipe, ukuran }]
+  namaBank                String?
+  nomorRekening           String?
+  namaRekening            String?
+  
+  // Status 5 Tahapan:
+  // PROSES_PENGAJUAN -> APPROVAL_DEWAN_ZIS -> APPROVAL_DIREKTUR_KEUANGAN -> PROSES_PENYALURAN -> SUDAH_DISALURKAN
+  stageStatus             String        @default("PROSES_PENGAJUAN")
+  status                  String        @default("Proses Pengajuan") // Tampilan label status
+  
+  // Catatan & Approval 3 Anggota Dewan ZIS:
+  dewanZisApprovals       Json?         // [{ memberName, role, nominalDisetujui, catatan, approvedAt }]
+  
+  // Approval Final Direktur Keuangan:
+  direkturKeuanganApproval Json?        // { selectedNominal, finalApprovedNominal, catatan, approvedAt, approvedBy }
+  
+  // Informasi Pembayaran / Penyaluran Kasir:
+  pembayaranDetail        Json?         // { transferDate, noReferensi, bankTujuan, rekeningTujuan, nominalDitransfer, buktiTransferUrl }
+  
+  surveiNotes             String?
+  tahapanProses           Json?
+
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
 }
 
 model HeroSlider {
@@ -554,14 +609,16 @@ model Testimonial {
 }
 
 model WebSetting {
-  id             String   @id @default("default-setting")
-  siteName       String   @default("AmanahZakat Peduli")
-  siteTagline    String   @default("Lembaga Amil Zakat Nasional")
-  contactPhone   String   @default("0811-2100-900")
-  contactEmail   String   @default("layanan@amanahzakat.or.id")
-  contactAddress String   @default("Gedung Menara Amanah Lt. 4, Jakarta Selatan")
-  socialLinks    Json?
-  bankAccounts   Json?
+  id                          String   @id @default("default-setting")
+  siteName                    String   @default("AmanahZakat Peduli")
+  siteTagline                 String   @default("Lembaga Amil Zakat Nasional")
+  contactPhone                String   @default("0811-2100-900")
+  contactEmail                String   @default("layanan@amanahzakat.or.id")
+  contactAddress              String   @default("Gedung Menara Amanah Lt. 4, Jakarta Selatan")
+  socialLinks                 Json?
+  bankAccounts                Json?
+  minSubmissionCooldownMonths Int      @default(6)
 
-  updatedAt      DateTime @updatedAt
+  updatedAt                   DateTime @updatedAt
 }
+
