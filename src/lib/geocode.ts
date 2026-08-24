@@ -39,8 +39,8 @@ export function detectWilayahBase(alamat: string): { lat: number; lng: number } 
 export function coordsFromAlamat(alamat: string, seed = alamat): { lat: number; lng: number } {
   const base = detectWilayahBase(alamat);
   const hash = hashSeed(seed);
-  const jitterLat = ((hash % 1000) / 1000 - 0.5) * 0.12;
-  const jitterLng = (((hash >> 10) % 1000) / 1000 - 0.5) * 0.12;
+  const jitterLat = ((hash % 1000) / 1000 - 0.5) * 0.22;
+  const jitterLng = (((hash >> 10) % 1000) / 1000 - 0.5) * 0.22;
   return {
     lat: Math.round((base.lat + jitterLat) * 1_000_000) / 1_000_000,
     lng: Math.round((base.lng + jitterLng) * 1_000_000) / 1_000_000,
