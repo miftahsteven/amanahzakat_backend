@@ -35,17 +35,16 @@ export class InboxService {
 
   /** Generate inbox from live ERP events (safe to re-run) */
   static async syncFromEvents() {
-    const [pendingPenerimaan, pendingPenyaluran, mitraLpj] = await Promise.all([
+    const [pendingPenerimaan, pendingApproval, mitraLpj] = await Promise.all([
       prisma.transaksiPenerimaan.findMany({
         where: { status: 'Menunggu Verifikasi' },
         include: { muzakki: true },
         take: 5,
         orderBy: { tanggal: 'desc' },
       }),
-      prisma.transaksiPenyaluran.findMany({
-        where: { status: 'Siap Bayar' },
-        include: { mustahik: true },
-        take: 5,
+      prisma.approvalPengajuan.findMany({
+        where: { status: 'Menunggu' },
+        take: 8,
         orderBy: { createdAt: 'desc' },
       }),
       prisma.mitraPenyalur.findMany({
@@ -64,12 +63,12 @@ export class InboxService {
         linkScreen: 'penerimaan',
       });
     }
-    for (const p of pendingPenyaluran) {
+    for (const a of pendingApproval) {
       events.push({
-        judul: 'Penyaluran Siap Bayar',
-        pesan: `${p.mustahik.nama} — ${p.keterangan}`,
+        judul: 'Pengajuan Menunggu Approval',
+        pesan: `${a.ref} — ${a.perihal}`,
         kategori: 'Approval',
-        linkScreen: 'penyaluran',
+        linkScreen: 'approval',
       });
     }
     for (const m of mitraLpj) {

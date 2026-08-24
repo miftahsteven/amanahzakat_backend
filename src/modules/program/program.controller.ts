@@ -14,6 +14,15 @@ export class ProgramController {
     }
   }
 
+  static async getById(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = await ProgramService.getById(String(req.params.id));
+      res.status(200).json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async create(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const { nama, pilar, paguAnggaran, targetPenerima, penanggungJawab, status } = req.body;

@@ -8,6 +8,7 @@ const router = Router();
 router.use(authenticateJWT);
 
 router.get('/', checkPermission('mitra.read'), MitraController.list);
+router.get('/:id', checkPermission('mitra.read'), MitraController.getById);
 router.post('/', checkPermission('mitra.create'), MitraController.create);
 router.patch('/:id', checkPermission('mitra.update'), MitraController.update);
 

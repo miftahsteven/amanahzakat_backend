@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { detectWilayahNama } from '../../lib/geocode';
+import { ApprovalService } from '../approval/approval.service';
 
 type PenyaluranRow = Prisma.TransaksiPenyaluranGetPayload<{
   include: { mustahik: true; program: true };
@@ -17,7 +18,7 @@ function mapRow(row: PenyaluranRow) {
     programId: row.programId,
     programNama: row.program.nama,
     nominal: row.nominal,
-    status: row.status as 'Siap Bayar' | 'Sudah Tersalurkan',
+    status: row.status,
     metodePembayaran: row.metodePembayaran,
     rekeningTujuan: row.rekeningTujuan,
     keterangan: row.keterangan,
@@ -43,13 +44,17 @@ async function mapPenyaluranDetail(row: PenyaluranRow) {
   const seq = row.noPenyaluran.split('/').pop()?.padStart(3, '0') ?? '001';
   const noTransaksi = `PYL-${row.tanggal.slice(2).replace(/-/g, '')}-${seq}`;
 
-  const [mitra, mustahikPenyaluran] = await Promise.all([
+  const [mitra, mustahikPenyaluran, approval] = await Promise.all([
     prisma.mitraPenyalur.findFirst({ orderBy: { totalPenyaluran: 'desc' } }),
     prisma.transaksiPenyaluran.findMany({
       where: { mustahikId: row.mustahikId, status: 'Sudah Tersalurkan' },
       include: { program: true },
       orderBy: { tanggal: 'desc' },
       take: 10,
+    }),
+    prisma.approvalPengajuan.findFirst({
+      where: { penyaluranId: row.id },
+      orderBy: { createdAt: 'desc' },
     }),
   ]);
 
@@ -59,6 +64,8 @@ async function mapPenyaluranDetail(row: PenyaluranRow) {
 
   const created = new Date(row.createdAt);
   const tgl = formatRiwayatWaktu(created);
+  const approvalDone = approval?.status === 'Disetujui' || tersalur;
+  const approvalRejected = approval?.status === 'Ditolak' || row.status === 'Ditolak';
 
   return {
     ...base,
@@ -87,9 +94,13 @@ async function mapPenyaluranDetail(row: PenyaluranRow) {
       { title: 'Survei & verifikasi kelayakan', desc: 'Divisi program memvalidasi data mustahik', waktu: tgl, done: true },
       {
         title: 'Approval anggaran',
-        desc: 'Dicek terhadap pagu program',
-        waktu: tersalur ? tgl : undefined,
-        done: true,
+        desc: approvalRejected
+          ? 'Pengajuan ditolak pada alur berjenjang'
+          : approval?.status === 'Menunggu'
+            ? `Menunggu tahap ${approval.tahap === 1 ? 'Maker' : approval.tahap === 2 ? 'Checker' : 'Approver'}`
+            : 'Dicek terhadap pagu program',
+        waktu: approvalDone || approvalRejected ? tgl : undefined,
+        done: approvalDone,
       },
       {
         title: 'Pencairan dana',
@@ -180,6 +191,7 @@ export class PenyaluranService {
     nominal: number;
     metodePembayaran: string;
     keterangan: string;
+    pengaju?: string;
   }) {
     const [mustahik, program] = await Promise.all([
       prisma.mustahik.findUnique({ where: { id: input.mustahikId } }),
@@ -206,7 +218,7 @@ export class PenyaluranService {
         asnaf: input.asnaf,
         programId: input.programId,
         nominal: input.nominal,
-        status: 'Siap Bayar',
+        status: 'Menunggu Approval',
         metodePembayaran: input.metodePembayaran,
         rekeningTujuan: mustahik.rekeningBank,
         keterangan: input.keterangan,
@@ -214,6 +226,14 @@ export class PenyaluranService {
         danaMustahik,
       },
       include: { mustahik: true, program: true },
+    });
+
+    await ApprovalService.createFromPenyaluran({
+      penyaluranId: trx.id,
+      noPenyaluran: trx.noPenyaluran,
+      perihal: `${input.keterangan} — ${mustahik.nama} (${input.asnaf})`,
+      nominal: input.nominal,
+      pengaju: input.pengaju ?? 'Amil',
     });
 
     return mapRow(trx);
@@ -231,6 +251,25 @@ export class PenyaluranService {
 
     if (existing.status === 'Sudah Tersalurkan') {
       return mapPenyaluranDetail(existing);
+    }
+
+    if (existing.status === 'Menunggu Approval') {
+      throw { statusCode: 400, message: 'Penyaluran masih menunggu approval berjenjang.' };
+    }
+
+    if (existing.status === 'Ditolak') {
+      throw { statusCode: 400, message: 'Penyaluran ditolak dan tidak dapat dicairkan.' };
+    }
+
+    if (existing.status !== 'Siap Bayar') {
+      throw { statusCode: 400, message: 'Status penyaluran tidak memungkinkan pencairan.' };
+    }
+
+    const pendingApproval = await prisma.approvalPengajuan.findFirst({
+      where: { penyaluranId: id, status: 'Menunggu' },
+    });
+    if (pendingApproval) {
+      throw { statusCode: 400, message: 'Penyaluran masih menunggu approval berjenjang.' };
     }
 
     const updated = await prisma.$transaction(async (tx) => {

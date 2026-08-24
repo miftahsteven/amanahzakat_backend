@@ -8,6 +8,7 @@ const router = Router();
 router.use(authenticateJWT);
 
 router.get('/', checkPermission('program.read'), ProgramController.list);
+router.get('/:id', checkPermission('program.read'), ProgramController.getById);
 router.post('/', checkPermission('program.update'), ProgramController.create);
 router.patch('/:id', checkPermission('program.update'), ProgramController.update);
 

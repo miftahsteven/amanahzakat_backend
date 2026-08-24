@@ -46,6 +46,96 @@ export class UpzService {
     });
   }
 
+  static async getById(id: string) {
+    const row = await prisma.upzCabang.findUnique({ where: { id }, select: upzSelect });
+    if (!row) throw { statusCode: 404, message: 'UPZ cabang tidak ditemukan.' };
+
+    const [programs, payrollMuzakki, payrollTrx] = await Promise.all([
+      prisma.programZis.findMany({
+        where: { status: 'Berjalan' },
+        orderBy: { terpakai: 'desc' },
+        take: 6,
+        select: {
+          id: true,
+          nama: true,
+          penanggungJawab: true,
+          paguAnggaran: true,
+          terpakai: true,
+        },
+      }),
+      prisma.muzakki.findMany({
+        where: { tipe: 'UPZ' },
+        orderBy: { totalSetoran: 'desc' },
+        take: 8,
+        select: { id: true, nomor: true, nama: true, totalSetoran: true, transaksiCount: true },
+      }),
+      prisma.transaksiPenerimaan.findMany({
+        where: {
+          kanal: { contains: 'Payroll UPZ', mode: 'insensitive' },
+          status: 'Terverifikasi',
+        },
+        include: { muzakki: { select: { nama: true } } },
+        orderBy: { tanggal: 'desc' },
+        take: 10,
+      }),
+    ]);
+
+    const terkumpul = row.totalPenghimpunan;
+    const tersalur = row.totalPenyaluran;
+    const pct = terkumpul > 0 ? Math.round((tersalur / terkumpul) * 100) : 0;
+    const hakUpzPct = row.hakPengelolaanPct;
+    const hakAmilPct = 7.5;
+    const infrastrukturPct = 2;
+    const danaMustahikPct = Math.max(0, 100 - hakAmilPct - hakUpzPct - infrastrukturPct);
+
+    const inisial = row.nama
+      .replace(/^UPZ\s+/i, '')
+      .split(' ')
+      .filter((w) => w.length > 0)
+      .slice(0, 2)
+      .map((w) => w[0])
+      .join('')
+      .toUpperCase();
+
+    return {
+      ...row,
+      inisial,
+      pctSalur: pct,
+      danaBelumTersalur: Math.max(0, terkumpul - tersalur),
+      sharing: [
+        { label: 'Hak Amil AmanahZakat', pct: hakAmilPct, value: Math.round(terkumpul * (hakAmilPct / 100)) },
+        { label: 'Hak Pengelolaan UPZ', pct: hakUpzPct, value: Math.round(terkumpul * (hakUpzPct / 100)) },
+        {
+          label: 'Biaya Sistem & Infrastruktur',
+          pct: infrastrukturPct,
+          value: Math.round(terkumpul * (infrastrukturPct / 100)),
+        },
+        {
+          label: 'Dana Mustahik Bersih',
+          pct: danaMustahikPct,
+          value: Math.round(terkumpul * (danaMustahikPct / 100)),
+        },
+      ],
+      programRows: programs.map((p) => ({
+        id: p.id,
+        nama: p.nama,
+        pj: p.penanggungJawab,
+        pagu: p.paguAnggaran,
+        terpakai: p.terpakai,
+        pct: p.paguAnggaran > 0 ? Math.min(100, Math.round((p.terpakai / p.paguAnggaran) * 100)) : 0,
+      })),
+      muzakkiUpz: payrollMuzakki,
+      recentPayroll: payrollTrx.map((p) => ({
+        id: p.id,
+        tanggal: p.tanggal,
+        muzakki: p.muzakki.nama,
+        jenisZis: p.jenisZis,
+        nominal: p.nominal,
+        noKwitansi: p.noKwitansi,
+      })),
+    };
+  }
+
   static async create(input: {
     nama: string;
     kategori: string;

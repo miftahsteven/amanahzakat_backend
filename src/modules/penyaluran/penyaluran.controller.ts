@@ -42,7 +42,10 @@ export class PenyaluranController {
 
   static async create(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const data = await PenyaluranService.create(req.body);
+      const data = await PenyaluranService.create({
+        ...req.body,
+        pengaju: req.user?.namaLengkap || req.user?.username,
+      });
       res.status(201).json({
         success: true,
         message: 'Pengajuan penyaluran berhasil dibuat.',
