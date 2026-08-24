@@ -140,9 +140,16 @@ export class LaporanService {
       }),
       prisma.transaksiPenyaluran.findMany({
         where: { status: 'Sudah Tersalurkan' },
-        select: { mustahikId: true, nominal: true, danaMustahik: true, program: { select: { nama: true, pilar: true } } },
+        select: {
+          mustahikId: true,
+          nominal: true,
+          danaMustahik: true,
+          program: { select: { id: true, nama: true, pilar: true } },
+        },
       }),
     ]);
+
+    const mustahikById = new Map(mustahikList.map((m) => [m.id, m]));
 
     const penyaluranByMustahik = new Map<string, { nominal: number; programUtama: string }>();
     for (const row of penyaluranRows) {
@@ -207,12 +214,81 @@ export class LaporanService {
       };
     });
 
+    /** Agregat per program — koordinat = centroid penerima manfaat program */
+    const programMap = new Map<
+      string,
+      {
+        id: string;
+        nama: string;
+        pilar: string;
+        nominal: number;
+        mustahikIds: Set<string>;
+        latSum: number;
+        lngSum: number;
+        coordCount: number;
+        wilayahSet: Set<string>;
+      }
+    >();
+
+    for (const row of penyaluranRows) {
+      const prog = row.program;
+      const cur = programMap.get(prog.id) ?? {
+        id: prog.id,
+        nama: prog.nama,
+        pilar: prog.pilar,
+        nominal: 0,
+        mustahikIds: new Set<string>(),
+        latSum: 0,
+        lngSum: 0,
+        coordCount: 0,
+        wilayahSet: new Set<string>(),
+      };
+      cur.nominal += row.danaMustahik;
+      if (!cur.mustahikIds.has(row.mustahikId)) {
+        cur.mustahikIds.add(row.mustahikId);
+        const m = mustahikById.get(row.mustahikId);
+        if (m) {
+          const coords = resolveMustahikCoords(m.alamat, m.lat, m.lng, m.nik);
+          cur.latSum += coords.lat;
+          cur.lngSum += coords.lng;
+          cur.coordCount += 1;
+          cur.wilayahSet.add(detectWilayah(m.alamat).nama.split('(')[0].trim());
+        }
+      }
+      programMap.set(prog.id, cur);
+    }
+
+    const programPoints = [...programMap.values()]
+      .map((p) => {
+        const lat =
+          p.coordCount > 0
+            ? Math.round((p.latSum / p.coordCount) * 1_000_000) / 1_000_000
+            : -6.2;
+        const lng =
+          p.coordCount > 0
+            ? Math.round((p.lngSum / p.coordCount) * 1_000_000) / 1_000_000
+            : 106.8;
+        return {
+          id: p.id,
+          nama: p.nama,
+          pilar: p.pilar,
+          lat,
+          lng,
+          jiwa: p.mustahikIds.size,
+          nominal: p.nominal,
+          wilayah: [...p.wilayahSet].slice(0, 3).join(', ') || 'Berbagai wilayah',
+        };
+      })
+      .sort((a, b) => b.nominal - a.nominal);
+
     return {
       totalMustahik: mustahikList.length,
       totalWilayah: wilayah.length,
+      totalProgram: programPoints.length,
       lastUpdated: new Date().toISOString().slice(0, 10),
       wilayah,
       mustahikPoints,
+      programPoints,
     };
   }
 
