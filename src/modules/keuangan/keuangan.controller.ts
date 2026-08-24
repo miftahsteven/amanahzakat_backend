@@ -1,0 +1,80 @@
+import { Response, NextFunction } from 'express';
+import { AuthenticatedRequest } from '../../middlewares/auth.middleware';
+import { KeuanganService } from './keuangan.service';
+
+export class KeuanganController {
+  static async listCoa(_req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = await KeuanganService.listCoa();
+      res.status(200).json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async listJurnal(_req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = await KeuanganService.listJurnal();
+      res.status(200).json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async createJurnal(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = await KeuanganService.createJurnal(req.body);
+      res.status(201).json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async listSimba(_req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = await KeuanganService.listSimba();
+      res.status(200).json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async exportSimba(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const kodeForm = req.params.kodeForm;
+      const data = await KeuanganService.exportSimba(kodeForm);
+      res.status(200).json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getClosing(_req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = await KeuanganService.getClosing();
+      res.status(200).json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateClosingStep(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { periode, stepId, done } = req.body;
+      const data = await KeuanganService.updateClosingStep(periode, stepId, !!done);
+      res.status(200).json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async toggleClosingLock(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { periode, lock } = req.body;
+      const data = await KeuanganService.toggleClosingLock(periode, !!lock);
+      res.status(200).json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
+}

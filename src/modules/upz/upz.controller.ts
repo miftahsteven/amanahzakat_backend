@@ -6,6 +6,15 @@ const KATEGORI_VALID = ['Masjid', 'Instansi Pemerintah', 'BUMN / Korporat', 'Sek
 const STATUS_VALID = ['Patuh', 'Perlu Audit', 'Baru'];
 
 export class UpzController {
+  static async portalSummary(_req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = await UpzService.portalSummary();
+      res.status(200).json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async list(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const kategori = typeof req.query.kategori === 'string' ? req.query.kategori : undefined;

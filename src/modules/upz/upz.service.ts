@@ -70,6 +70,53 @@ export class UpzService {
     });
   }
 
+  static async portalSummary() {
+    const [upzKorporat, muzakkiUpz, penerimaanPayroll] = await Promise.all([
+      prisma.upzCabang.findMany({
+        where: { kategori: { contains: 'Korporat', mode: 'insensitive' } },
+        orderBy: { totalPenghimpunan: 'desc' },
+        select: upzSelect,
+      }),
+      prisma.muzakki.findMany({
+        where: { tipe: 'UPZ' },
+        orderBy: { totalSetoran: 'desc' },
+      }),
+      prisma.transaksiPenerimaan.findMany({
+        where: {
+          kanal: { contains: 'Payroll UPZ', mode: 'insensitive' },
+          status: 'Terverifikasi',
+        },
+        include: { muzakki: true },
+        orderBy: { tanggal: 'desc' },
+        take: 20,
+      }),
+    ]);
+
+    return {
+      summary: {
+        jumlahUpzKorporat: upzKorporat.length,
+        jumlahMuzakkiUpz: muzakkiUpz.length,
+        totalPayrollTerverifikasi: penerimaanPayroll.reduce((s, r) => s + r.nominal, 0),
+        transaksiPayroll: penerimaanPayroll.length,
+      },
+      upzKorporat,
+      muzakkiUpz: muzakkiUpz.map((m) => ({
+        id: m.id,
+        nomor: m.nomor,
+        nama: m.nama,
+        totalSetoran: m.totalSetoran,
+        transaksiCount: m.transaksiCount,
+      })),
+      recentPayroll: penerimaanPayroll.map((p) => ({
+        tanggal: p.tanggal,
+        muzakki: p.muzakki.nama,
+        jenisZis: p.jenisZis,
+        nominal: p.nominal,
+        noKwitansi: p.noKwitansi,
+      })),
+    };
+  }
+
   static async update(
     id: string,
     input: Partial<{

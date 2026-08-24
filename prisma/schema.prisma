@@ -276,6 +276,49 @@ model FormSimba {
   updatedAt  DateTime @updatedAt
 }
 
+model Notifikasi {
+  id         String   @id @default(cuid())
+  judul      String
+  pesan      String
+  kategori   String
+  linkScreen String?
+  dibaca     Boolean  @default(false)
+  waktu      DateTime @default(now())
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model ClosingPeriode {
+  id          String   @id @default(cuid())
+  periode     String   @unique
+  label       String
+  isLocked    Boolean  @default(false)
+  stepRekon   Boolean  @default(false)
+  stepJurnal  Boolean  @default(false)
+  stepSaldo   Boolean  @default(false)
+  stepLaporan Boolean  @default(false)
+  lockedAt    String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ApprovalPengajuan {
+  id           String   @id @default(cuid())
+  ref          String   @unique
+  perihal      String
+  nominal      Float
+  pengaju      String
+  tahap        Int      @default(1)
+  tipe         String   @default("penyaluran")
+  status       String   @default("Menunggu")
+  penyaluranId String?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
 // ==========================================
 // 5. MITRA, UPZ & AMIL
 // ==========================================

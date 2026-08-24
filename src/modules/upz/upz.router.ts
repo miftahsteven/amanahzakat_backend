@@ -7,6 +7,7 @@ const router = Router();
 
 router.use(authenticateJWT);
 
+router.get('/portal', checkPermission('portalUpz.read'), UpzController.portalSummary);
 router.get('/', checkPermission('upz.read'), UpzController.list);
 router.post('/', checkPermission('upz.update'), UpzController.create);
 router.patch('/:id', checkPermission('upz.update'), UpzController.update);

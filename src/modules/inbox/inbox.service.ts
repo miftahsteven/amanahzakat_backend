@@ -1,0 +1,100 @@
+import { prisma } from '../../lib/prisma';
+
+function formatWaktu(d: Date): string {
+  const diff = Date.now() - d.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${Math.max(1, mins)} menit lalu`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} jam lalu`;
+  const days = Math.floor(hours / 24);
+  return `${days} hari lalu`;
+}
+
+export class InboxService {
+  static async list() {
+    const rows = await prisma.notifikasi.findMany({ orderBy: { waktu: 'desc' } });
+    return rows.map((r) => ({
+      id: r.id,
+      judul: r.judul,
+      pesan: r.pesan,
+      kategori: r.kategori,
+      linkScreen: r.linkScreen,
+      dibaca: r.dibaca,
+      waktu: formatWaktu(r.waktu),
+    }));
+  }
+
+  static async markRead(id: string) {
+    return prisma.notifikasi.update({ where: { id }, data: { dibaca: true } });
+  }
+
+  static async markAllRead() {
+    await prisma.notifikasi.updateMany({ data: { dibaca: true } });
+    return { ok: true };
+  }
+
+  /** Generate inbox from live ERP events (safe to re-run) */
+  static async syncFromEvents() {
+    const [pendingPenerimaan, pendingPenyaluran, mitraLpj] = await Promise.all([
+      prisma.transaksiPenerimaan.findMany({
+        where: { status: 'Menunggu Verifikasi' },
+        include: { muzakki: true },
+        take: 5,
+        orderBy: { tanggal: 'desc' },
+      }),
+      prisma.transaksiPenyaluran.findMany({
+        where: { status: 'Siap Bayar' },
+        include: { mustahik: true },
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.mitraPenyalur.findMany({
+        where: { statusLaporanLpj: 'Menunggu LPJ' },
+        take: 3,
+      }),
+    ]);
+
+    const events: { judul: string; pesan: string; kategori: string; linkScreen: string }[] = [];
+
+    for (const p of pendingPenerimaan) {
+      events.push({
+        judul: 'Penerimaan Menunggu Verifikasi',
+        pesan: `${p.muzakki.nama} — ${p.jenisZis} Rp ${p.nominal.toLocaleString('id-ID')}`,
+        kategori: 'Penerimaan',
+        linkScreen: 'penerimaan',
+      });
+    }
+    for (const p of pendingPenyaluran) {
+      events.push({
+        judul: 'Penyaluran Siap Bayar',
+        pesan: `${p.mustahik.nama} — ${p.keterangan}`,
+        kategori: 'Approval',
+        linkScreen: 'penyaluran',
+      });
+    }
+    for (const m of mitraLpj) {
+      events.push({
+        judul: 'LPJ Mitra Menunggu',
+        pesan: `${m.nama} belum menyerahkan LPJ penyaluran.`,
+        kategori: 'System',
+        linkScreen: 'mitra',
+      });
+    }
+
+    events.push({
+      judul: 'Pengingat Tutup Buku',
+      pesan: 'Periode berjalan siap dikunci setelah verifikasi 4 langkah pra-tutup.',
+      kategori: 'Closing',
+      linkScreen: 'closing',
+    });
+
+    for (const ev of events) {
+      const exists = await prisma.notifikasi.findFirst({
+        where: { judul: ev.judul, pesan: ev.pesan },
+      });
+      if (!exists) {
+        await prisma.notifikasi.create({ data: ev });
+      }
+    }
+  }
+}
