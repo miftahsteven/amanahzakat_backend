@@ -17,6 +17,7 @@ import laporanRouter from './modules/laporan/laporan.router';
 import keuanganRouter from './modules/keuangan/keuangan.router';
 import inboxRouter from './modules/inbox/inbox.router';
 import approvalRouter from './modules/approval/approval.router';
+import portalRouter from './modules/portal/portal.router';
 
 const router = Router();
 
@@ -49,5 +50,6 @@ router.use('/laporan', laporanRouter);
 router.use('/keuangan', keuanganRouter);
 router.use('/inbox', inboxRouter);
 router.use('/approval', approvalRouter);
+router.use('/portal', portalRouter);
 
 export default router;
