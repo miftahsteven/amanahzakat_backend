@@ -1,3 +1,18 @@
+const WILAYAH_LABELS = [
+  { nama: 'DKI Jakarta', keywords: ['jakarta', 'kebayoran', 'jatinegara', 'pondok labu', 'menteng'] },
+  { nama: 'Banten', keywords: ['tangerang', 'serang', 'banten', 'cikupa', 'lebak'] },
+  { nama: 'NTB / NTT', keywords: ['lombok', 'sumbawa', 'ntb', 'ntt', 'mataram', 'dompu', 'sumba'] },
+  { nama: 'Jawa Barat', keywords: ['bandung', 'bekasi', 'bogor', 'depok', 'cileunyi', 'bojongsoang', 'arcamanik', 'jawa barat'] },
+] as const;
+
+export function detectWilayahNama(alamat: string): string {
+  const lower = alamat.toLowerCase();
+  for (const rule of WILAYAH_LABELS) {
+    if (rule.keywords.some((k) => lower.includes(k))) return rule.nama;
+  }
+  return 'Wilayah Lainnya';
+}
+
 const WILAYAH_RULES = [
   { id: 'dki', lat: -6.2088, lng: 106.8456, keywords: ['jakarta', 'kebayoran', 'jatinegara', 'pondok labu', 'menteng'] },
   { id: 'banten', lat: -6.4058, lng: 106.064, keywords: ['tangerang', 'serang', 'banten', 'cikupa', 'lebak'] },

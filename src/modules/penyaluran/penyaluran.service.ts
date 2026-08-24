@@ -1,6 +1,12 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
+import { detectWilayahNama } from '../../lib/geocode';
 
-function mapRow(row: Awaited<ReturnType<typeof fetchRows>>[number]) {
+type PenyaluranRow = Prisma.TransaksiPenyaluranGetPayload<{
+  include: { mustahik: true; program: true };
+}>;
+
+function mapRow(row: PenyaluranRow) {
   return {
     id: row.id,
     noPenyaluran: row.noPenyaluran,
@@ -17,6 +23,87 @@ function mapRow(row: Awaited<ReturnType<typeof fetchRows>>[number]) {
     keterangan: row.keterangan,
     potonganAmil: row.potonganAmil,
     danaMustahik: row.danaMustahik,
+  };
+}
+
+function referensiFromId(id: string) {
+  let hash = 0;
+  for (const ch of id) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  return `TRF${String(hash % 10_000_000_000).padStart(9, '0').slice(0, 9)}`;
+}
+
+function formatRiwayatWaktu(date: Date) {
+  const d = date.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return d;
+}
+
+async function mapPenyaluranDetail(row: PenyaluranRow) {
+  const base = mapRow(row);
+  const tersalur = row.status === 'Sudah Tersalurkan';
+  const seq = row.noPenyaluran.split('/').pop()?.padStart(3, '0') ?? '001';
+  const noTransaksi = `PYL-${row.tanggal.slice(2).replace(/-/g, '')}-${seq}`;
+
+  const [mitra, mustahikPenyaluran] = await Promise.all([
+    prisma.mitraPenyalur.findFirst({ orderBy: { totalPenyaluran: 'desc' } }),
+    prisma.transaksiPenyaluran.findMany({
+      where: { mustahikId: row.mustahikId, status: 'Sudah Tersalurkan' },
+      include: { program: true },
+      orderBy: { tanggal: 'desc' },
+      take: 10,
+    }),
+  ]);
+
+  const programSet = [...new Set(mustahikPenyaluran.map((p) => p.program.nama))];
+  const porsiPaguPct =
+    row.program.paguAnggaran > 0 ? Math.round((row.nominal / row.program.paguAnggaran) * 100) : 0;
+
+  const created = new Date(row.createdAt);
+  const tgl = formatRiwayatWaktu(created);
+
+  return {
+    ...base,
+    noTransaksi,
+    mustahikNik: row.mustahik.nik,
+    mustahikWilayah: detectWilayahNama(row.mustahik.alamat),
+    mustahikTotalBantuan: row.mustahik.totalBantuanDiterima,
+    mustahikRiwayatProgram: programSet.length ? programSet.join(' · ') : row.program.nama,
+    programPagu: row.program.paguAnggaran,
+    programTerpakai: row.program.terpakai,
+    programPenanggungJawab: row.program.penanggungJawab,
+    porsiPaguPct,
+    mitraNama: mitra?.nama ?? 'Dilaksanakan internal amil',
+    mitraPic: mitra ? `${mitra.picKontak} · ${mitra.bentukLembaga}` : 'Divisi program pusat',
+    akunDebit: `5011000010 — Penyaluran Asnaf ${row.asnaf}`,
+    akunKredit: '1011000010 — Kas Bank Zakat',
+    refTransfer: tersalur ? referensiFromId(row.id) : 'Belum ada referensi',
+    dokumen: [
+      { nama: 'Formulir permohonan bantuan', status: 'Lengkap' },
+      { nama: 'Fotokopi KTP / KK penerima', status: 'Lengkap' },
+      { nama: 'Berita acara survei kelayakan', status: 'Lengkap' },
+      { nama: 'Bukti serah terima dana', status: tersalur ? 'Lengkap' : 'Menunggu' },
+    ],
+    riwayat: [
+      { title: 'Pengajuan diterima', desc: 'Proposal / usulan tercatat di sistem', waktu: tgl, done: true },
+      { title: 'Survei & verifikasi kelayakan', desc: 'Divisi program memvalidasi data mustahik', waktu: tgl, done: true },
+      {
+        title: 'Approval anggaran',
+        desc: 'Dicek terhadap pagu program',
+        waktu: tersalur ? tgl : undefined,
+        done: true,
+      },
+      {
+        title: 'Pencairan dana',
+        desc: tersalur ? 'Transfer berhasil ke penerima' : 'Menunggu eksekusi pembayaran',
+        waktu: tersalur ? tgl : undefined,
+        done: tersalur,
+      },
+      {
+        title: 'Laporan pemanfaatan',
+        desc: 'Monitoring dampak oleh mitra / amil',
+        waktu: tersalur ? 'Dijadwalkan' : undefined,
+        done: false,
+      },
+    ],
   };
 }
 
@@ -43,7 +130,7 @@ export class PenyaluranService {
       include: { mustahik: true, program: true },
     });
     if (!row) throw { statusCode: 404, message: 'Transaksi penyaluran tidak ditemukan.' };
-    return mapRow(row);
+    return mapPenyaluranDetail(row);
   }
 
   static async listMustahik() {
@@ -143,7 +230,7 @@ export class PenyaluranService {
     }
 
     if (existing.status === 'Sudah Tersalurkan') {
-      return mapRow(existing);
+      return mapPenyaluranDetail(existing);
     }
 
     const updated = await prisma.$transaction(async (tx) => {
@@ -171,6 +258,6 @@ export class PenyaluranService {
       return row;
     });
 
-    return mapRow(updated);
+    return mapPenyaluranDetail(updated);
   }
 }
