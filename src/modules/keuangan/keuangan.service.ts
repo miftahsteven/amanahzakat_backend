@@ -182,4 +182,87 @@ export class KeuanganService {
       await prisma.accountCoA.updateMany({ where: { kode }, data: { saldo } });
     }
   }
+
+  static async getLaporanKeuangan(query?: { dari?: string; sampai?: string }) {
+    const now = new Date();
+    const year = now.getFullYear();
+    const dari = query?.dari || `${year}-01-01`;
+    const sampai = query?.sampai || now.toISOString().slice(0, 10);
+    const bulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const labelBulan = `${bulan[now.getMonth()]} ${now.getFullYear()}`;
+
+    const [penerimaan, penyaluran, coa] = await Promise.all([
+      prisma.transaksiPenerimaan.findMany({ where: { status: 'Terverifikasi' } }),
+      prisma.transaksiPenyaluran.findMany({ where: { status: 'Sudah Tersalurkan' } }),
+      prisma.accountCoA.findMany(),
+    ]);
+
+    const penerimaanPeriode = penerimaan.filter((r) => r.tanggal >= dari && r.tanggal <= sampai);
+    const penyaluranPeriode = penyaluran.filter((r) => r.tanggal >= dari && r.tanggal <= sampai);
+
+    const zakatMaalProfesi = penerimaanPeriode
+      .filter((r) => r.jenisZis.includes('Maal') || r.jenisZis.includes('Profesi'))
+      .reduce((s, r) => s + r.nominal, 0);
+    const zakatFitrah = penerimaanPeriode.filter((r) => r.jenisZis.includes('Fitrah')).reduce((s, r) => s + r.nominal, 0);
+    const totalPenerimaanZakat = zakatMaalProfesi + zakatFitrah;
+
+    const infakTerikat = penerimaanPeriode
+      .filter((r) => r.jenisZis === 'Infak' && r.programNama)
+      .reduce((s, r) => s + r.nominal, 0);
+    const infakBebas = penerimaanPeriode
+      .filter((r) => (r.jenisZis === 'Infak' && !r.programNama) || r.jenisZis === 'Shodaqoh')
+      .reduce((s, r) => s + r.nominal, 0);
+    const totalPenerimaanInfak = infakTerikat + infakBebas;
+
+    const penyaluranZakat = penyaluranPeriode.reduce((s, r) => s + r.nominal, 0);
+    const hakAmil = Math.round(totalPenerimaanZakat * 0.125);
+    const saldoAkhirZakat = Math.max(0, totalPenerimaanZakat - penyaluranZakat - hakAmil);
+    const penyaluranInfak = Math.round(penyaluranPeriode.reduce((s, r) => s + r.danaMustahik, 0) * 0.7);
+    const saldoAkhirInfak = Math.max(0, totalPenerimaanInfak - penyaluranInfak);
+
+    const kasKecil = coa.find((a) => a.kode === '101101')?.saldo ?? 15000000;
+    const bankZakat = coa.find((a) => a.kode === '101201')?.saldo ?? saldoAkhirZakat;
+    const bankInfak = coa.find((a) => a.kode === '101202')?.saldo ?? saldoAkhirInfak;
+    const saldoAmil = coa.find((a) => a.kode === '303100')?.saldo ?? hakAmil;
+    const totalAktiva = kasKecil + bankZakat + bankInfak;
+    const totalPasiva = bankZakat + bankInfak + saldoAmil;
+
+    const arusMasuk = penerimaanPeriode.reduce((s, r) => s + r.nominal, 0);
+    const arusKeluarPenyaluran = penyaluranPeriode.reduce((s, r) => s + r.danaMustahik, 0);
+    const arusKeluarOperasional = Math.round(hakAmil * 0.3);
+    const kenaikanKas = arusMasuk - arusKeluarPenyaluran - arusKeluarOperasional;
+
+    return {
+      periode: { dari, sampai, label: labelBulan },
+      psak109: {
+        zakatMaalProfesi,
+        zakatFitrah,
+        totalPenerimaanZakat,
+        penyaluranZakat,
+        hakAmil,
+        saldoAkhirZakat,
+        infakTerikat,
+        infakBebas,
+        totalPenerimaanInfak,
+        penyaluranInfak,
+        saldoAkhirInfak,
+      },
+      neraca: {
+        kasKecil,
+        bankZakat,
+        bankInfak,
+        totalAktiva,
+        saldoDanaZakat: bankZakat,
+        saldoDanaInfak: bankInfak,
+        saldoDanaAmil: saldoAmil,
+        totalPasiva,
+      },
+      arusKas: {
+        arusMasuk,
+        arusKeluarPenyaluran,
+        arusKeluarOperasional,
+        kenaikanKas,
+      },
+    };
+  }
 }

@@ -189,6 +189,8 @@ model Mustahik {
   statusSurvei         String                // Terverifikasi, Perlu Survei
   skorKelayakan        Int                   @default(80)
   totalBantuanDiterima Float                 @default(0)
+  lat                  Float?
+  lng                  Float?
   penyaluranList       TransaksiPenyaluran[]
 
   createdAt            DateTime              @default(now())

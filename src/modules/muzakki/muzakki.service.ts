@@ -43,6 +43,12 @@ export class MuzakkiService {
     });
   }
 
+  static async getById(id: string) {
+    const row = await prisma.muzakki.findUnique({ where: { id }, select: muzakkiSelect });
+    if (!row) throw { statusCode: 404, message: 'Muzakki tidak ditemukan.' };
+    return row;
+  }
+
   static async create(input: {
     nama: string;
     tipe: string;

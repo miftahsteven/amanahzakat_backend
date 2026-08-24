@@ -15,5 +15,6 @@ router.patch('/simba/:kodeForm/export', checkPermission('simba.export'), Keuanga
 router.get('/closing', checkPermission('closing.read'), KeuanganController.getClosing);
 router.patch('/closing/step', checkPermission('closing.execute'), KeuanganController.updateClosingStep);
 router.patch('/closing/lock', checkPermission('closing.execute'), KeuanganController.toggleClosingLock);
+router.get('/laporan', checkPermission('laporan-keuangan.read'), KeuanganController.laporanKeuangan);
 
 export default router;

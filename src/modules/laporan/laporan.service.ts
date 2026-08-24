@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { detectWilayahBase, resolveMustahikCoords } from '../../lib/geocode';
 
 function inDateRange(tanggal: string, dari?: string, sampai?: string): boolean {
   if (dari && tanggal < dari) return false;
@@ -14,15 +15,13 @@ function asnafLabel(asnaf: string): string {
 
 type WilayahMeta = { id: string; nama: string; mapTop: string; mapLeft: string; lat: number; lng: number };
 
-const WILAYAH_RULES: { id: string; nama: string; keywords: string[]; mapTop: string; mapLeft: string; lat: number; lng: number }[] = [
+const WILAYAH_RULES: { id: string; nama: string; keywords: string[]; mapTop: string; mapLeft: string }[] = [
   {
     id: 'dki',
     nama: 'DKI Jakarta (Jaksel, Jaktim, Jakpus)',
     keywords: ['jakarta', 'kebayoran', 'jatinegara', 'pondok labu', 'menteng'],
     mapTop: '33%',
     mapLeft: '25%',
-    lat: -6.2088,
-    lng: 106.8456,
   },
   {
     id: 'banten',
@@ -30,8 +29,6 @@ const WILAYAH_RULES: { id: string; nama: string; keywords: string[]; mapTop: str
     keywords: ['tangerang', 'serang', 'banten', 'cikupa', 'lebak'],
     mapTop: '75%',
     mapLeft: '20%',
-    lat: -6.4058,
-    lng: 106.064,
   },
   {
     id: 'ntb',
@@ -39,8 +36,6 @@ const WILAYAH_RULES: { id: string; nama: string; keywords: string[]; mapTop: str
     keywords: ['lombok', 'sumbawa', 'ntb', 'ntt', 'mataram', 'dompu'],
     mapTop: '67%',
     mapLeft: '75%',
-    lat: -8.5833,
-    lng: 116.1167,
   },
   {
     id: 'jabar',
@@ -48,8 +43,6 @@ const WILAYAH_RULES: { id: string; nama: string; keywords: string[]; mapTop: str
     keywords: ['bandung', 'bekasi', 'bogor', 'depok', 'cileunyi', 'bojongsoang', 'arcamanik', 'jawa barat'],
     mapTop: '25%',
     mapLeft: '33%',
-    lat: -6.9175,
-    lng: 107.6191,
   },
 ];
 
@@ -57,10 +50,12 @@ function detectWilayah(alamat: string): WilayahMeta {
   const lower = alamat.toLowerCase();
   for (const rule of WILAYAH_RULES) {
     if (rule.keywords.some((k) => lower.includes(k))) {
-      return { id: rule.id, nama: rule.nama, mapTop: rule.mapTop, mapLeft: rule.mapLeft };
+      const base = detectWilayahBase(alamat);
+      return { id: rule.id, nama: rule.nama, mapTop: rule.mapTop, mapLeft: rule.mapLeft, lat: base.lat, lng: base.lng };
     }
   }
-  return { id: 'lainnya', nama: 'Wilayah Lainnya', mapTop: '50%', mapLeft: '50%', lat: -2.5489, lng: 118.0149 };
+  const base = detectWilayahBase(alamat);
+  return { id: 'lainnya', nama: 'Wilayah Lainnya', mapTop: '50%', mapLeft: '50%', lat: base.lat, lng: base.lng };
 }
 
 export class LaporanService {
@@ -141,7 +136,7 @@ export class LaporanService {
     const [mustahikList, penyaluranRows] = await Promise.all([
       prisma.mustahik.findMany({
         where: { statusSurvei: 'Terverifikasi' },
-        select: { id: true, nama: true, alamat: true, kategoriAsnaf: true },
+        select: { id: true, nama: true, alamat: true, kategoriAsnaf: true, lat: true, lng: true, nik: true },
       }),
       prisma.transaksiPenyaluran.findMany({
         where: { status: 'Sudah Tersalurkan' },
@@ -197,11 +192,27 @@ export class LaporanService {
       }))
       .sort((a, b) => b.nominal - a.nominal);
 
+    const mustahikPoints = mustahikList.map((m) => {
+      const coords = resolveMustahikCoords(m.alamat, m.lat, m.lng, m.nik);
+      const p = penyaluranByMustahik.get(m.id);
+      return {
+        id: m.id,
+        nama: m.nama,
+        asnaf: m.kategoriAsnaf,
+        alamat: m.alamat,
+        lat: coords.lat,
+        lng: coords.lng,
+        nominal: p?.nominal ?? 0,
+        program: p?.programUtama ?? 'Belum ada penyaluran',
+      };
+    });
+
     return {
       totalMustahik: mustahikList.length,
       totalWilayah: wilayah.length,
       lastUpdated: new Date().toISOString().slice(0, 10),
       wilayah,
+      mustahikPoints,
     };
   }
 

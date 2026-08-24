@@ -77,4 +77,15 @@ export class KeuanganController {
       next(error);
     }
   }
+
+  static async laporanKeuangan(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const dari = typeof req.query.dari === 'string' ? req.query.dari : undefined;
+      const sampai = typeof req.query.sampai === 'string' ? req.query.sampai : undefined;
+      const data = await KeuanganService.getLaporanKeuangan({ dari, sampai });
+      res.status(200).json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

@@ -44,8 +44,9 @@ const menusData = [
   { kodeModul: 'KONTEN_WEB', kodeMenu: 'cms-settings', namaMenu: 'Pengaturan Web Publik', kodeTampil: 'PW', icon: 'Globe2', urutan: 8, actions: [...read('Lihat Pengaturan Web'), { aksi: 'update', nama: 'Ubah Pengaturan Web' }] },
 
   { kodeModul: 'KEUANGAN', kodeMenu: 'jurnal', namaMenu: 'Pencatatan Jurnal & G/L PSAK 109', kodeTampil: 'JR', icon: 'BookOpen', urutan: 1, actions: [...read('Lihat Jurnal & G/L'), { aksi: 'create', nama: 'Catat Jurnal' }] },
-  { kodeModul: 'KEUANGAN', kodeMenu: 'closing', namaMenu: 'Closing Periode Akuntansi', kodeTampil: 'CL', icon: 'Lock', urutan: 2, actions: [...read('Lihat Closing Periode'), { aksi: 'execute', nama: 'Eksekusi Closing Periode' }] },
-  { kodeModul: 'KEUANGAN', kodeMenu: 'simba', namaMenu: 'Export Paket SIMBA BAZNAS', kodeTampil: 'SB', icon: 'Package', urutan: 3, actions: [...read('Lihat Export SIMBA'), { aksi: 'export', nama: 'Ekspor Paket SIMBA' }] },
+  { kodeModul: 'KEUANGAN', kodeMenu: 'laporan-keuangan', namaMenu: 'Laporan Keuangan PSAK 109', kodeTampil: 'LK', icon: 'Receipt', urutan: 2, actions: [...read('Lihat Laporan Keuangan PSAK 109'), { aksi: 'export', nama: 'Ekspor Laporan Keuangan' }] },
+  { kodeModul: 'KEUANGAN', kodeMenu: 'closing', namaMenu: 'Closing Periode Akuntansi', kodeTampil: 'CL', icon: 'Lock', urutan: 3, actions: [...read('Lihat Closing Periode'), { aksi: 'execute', nama: 'Eksekusi Closing Periode' }] },
+  { kodeModul: 'KEUANGAN', kodeMenu: 'simba', namaMenu: 'Export Paket SIMBA BAZNAS', kodeTampil: 'SB', icon: 'Package', urutan: 4, actions: [...read('Lihat Export SIMBA'), { aksi: 'export', nama: 'Ekspor Paket SIMBA' }] },
 
   { kodeModul: 'PERALATAN', kodeMenu: 'kalkulator', namaMenu: 'Kalkulator Zakat Maal/Fitrah', kodeTampil: 'KL', icon: 'Calculator', urutan: 1, actions: [...read('Gunakan Kalkulator ZIS'), { aksi: 'update', nama: 'Kelola Parameter Nisab Zakat' }] },
   { kodeModul: 'PERALATAN', kodeMenu: 'portal', namaMenu: 'Portal Informasi Publik', kodeTampil: 'PO', icon: 'Info', urutan: 2, actions: read('Akses Portal Publik') },

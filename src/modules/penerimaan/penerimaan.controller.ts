@@ -22,6 +22,15 @@ export class PenerimaanController {
     }
   }
 
+  static async getById(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = await PenerimaanService.getById(String(req.params.id));
+      res.status(200).json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async create(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const data = await PenerimaanService.create(req.body);

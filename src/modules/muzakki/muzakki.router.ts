@@ -8,6 +8,7 @@ const router = Router();
 router.use(authenticateJWT);
 
 router.get('/', checkPermission('muzakki.read'), MuzakkiController.list);
+router.get('/:id', checkPermission('muzakki.read'), MuzakkiController.getById);
 router.post('/', checkPermission('muzakki.create'), MuzakkiController.create);
 
 export default router;

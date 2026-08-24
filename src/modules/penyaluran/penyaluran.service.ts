@@ -37,6 +37,15 @@ export class PenyaluranService {
     return rows.map(mapRow);
   }
 
+  static async getById(id: string) {
+    const row = await prisma.transaksiPenyaluran.findUnique({
+      where: { id },
+      include: { mustahik: true, program: true },
+    });
+    if (!row) throw { statusCode: 404, message: 'Transaksi penyaluran tidak ditemukan.' };
+    return mapRow(row);
+  }
+
   static async listMustahik() {
     return prisma.mustahik.findMany({
       where: { statusSurvei: 'Terverifikasi' },

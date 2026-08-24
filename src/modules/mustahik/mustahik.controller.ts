@@ -13,6 +13,29 @@ export class MustahikController {
     }
   }
 
+  static async getById(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = await MustahikService.getById(String(req.params.id));
+      res.status(200).json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateGps(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { lat, lng } = req.body;
+      if (lat == null || lng == null) {
+        res.status(400).json({ success: false, message: 'Koordinat lat dan lng wajib diisi.' });
+        return;
+      }
+      const data = await MustahikService.updateGps(String(req.params.id), Number(lat), Number(lng));
+      res.status(200).json({ success: true, message: 'Koordinat GPS mustahik diperbarui.', data });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async create(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const {
