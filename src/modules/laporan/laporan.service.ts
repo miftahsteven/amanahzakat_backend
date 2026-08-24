@@ -12,15 +12,17 @@ function asnafLabel(asnaf: string): string {
   return asnaf;
 }
 
-type WilayahMeta = { id: string; nama: string; mapTop: string; mapLeft: string };
+type WilayahMeta = { id: string; nama: string; mapTop: string; mapLeft: string; lat: number; lng: number };
 
-const WILAYAH_RULES: { id: string; nama: string; keywords: string[]; mapTop: string; mapLeft: string }[] = [
+const WILAYAH_RULES: { id: string; nama: string; keywords: string[]; mapTop: string; mapLeft: string; lat: number; lng: number }[] = [
   {
     id: 'dki',
     nama: 'DKI Jakarta (Jaksel, Jaktim, Jakpus)',
     keywords: ['jakarta', 'kebayoran', 'jatinegara', 'pondok labu', 'menteng'],
     mapTop: '33%',
     mapLeft: '25%',
+    lat: -6.2088,
+    lng: 106.8456,
   },
   {
     id: 'banten',
@@ -28,6 +30,8 @@ const WILAYAH_RULES: { id: string; nama: string; keywords: string[]; mapTop: str
     keywords: ['tangerang', 'serang', 'banten', 'cikupa', 'lebak'],
     mapTop: '75%',
     mapLeft: '20%',
+    lat: -6.4058,
+    lng: 106.064,
   },
   {
     id: 'ntb',
@@ -35,6 +39,8 @@ const WILAYAH_RULES: { id: string; nama: string; keywords: string[]; mapTop: str
     keywords: ['lombok', 'sumbawa', 'ntb', 'ntt', 'mataram', 'dompu'],
     mapTop: '67%',
     mapLeft: '75%',
+    lat: -8.5833,
+    lng: 116.1167,
   },
   {
     id: 'jabar',
@@ -42,6 +48,8 @@ const WILAYAH_RULES: { id: string; nama: string; keywords: string[]; mapTop: str
     keywords: ['bandung', 'bekasi', 'bogor', 'depok', 'cileunyi', 'bojongsoang', 'arcamanik', 'jawa barat'],
     mapTop: '25%',
     mapLeft: '33%',
+    lat: -6.9175,
+    lng: 107.6191,
   },
 ];
 
@@ -52,7 +60,7 @@ function detectWilayah(alamat: string): WilayahMeta {
       return { id: rule.id, nama: rule.nama, mapTop: rule.mapTop, mapLeft: rule.mapLeft };
     }
   }
-  return { id: 'lainnya', nama: 'Wilayah Lainnya', mapTop: '50%', mapLeft: '50%' };
+  return { id: 'lainnya', nama: 'Wilayah Lainnya', mapTop: '50%', mapLeft: '50%', lat: -2.5489, lng: 118.0149 };
 }
 
 export class LaporanService {
@@ -150,15 +158,18 @@ export class LaporanService {
 
     const wilayahMap = new Map<
       string,
-      { nama: string; mapTop: string; mapLeft: string; jiwa: number; nominal: number; programSet: Set<string> }
+      { id: string; nama: string; mapTop: string; mapLeft: string; lat: number; lng: number; jiwa: number; nominal: number; programSet: Set<string> }
     >();
 
     for (const m of mustahikList) {
       const w = detectWilayah(m.alamat);
       const cur = wilayahMap.get(w.id) ?? {
+        id: w.id,
         nama: w.nama,
         mapTop: w.mapTop,
         mapLeft: w.mapLeft,
+        lat: w.lat,
+        lng: w.lng,
         jiwa: 0,
         nominal: 0,
         programSet: new Set<string>(),
@@ -174,9 +185,12 @@ export class LaporanService {
 
     const wilayah = [...wilayahMap.values()]
       .map((w) => ({
+        id: w.id,
         nama: w.nama,
         mapTop: w.mapTop,
         mapLeft: w.mapLeft,
+        lat: w.lat,
+        lng: w.lng,
         jiwa: w.jiwa,
         nominal: w.nominal,
         program: [...w.programSet].slice(0, 2).join(' & ') || 'Program ZIS',
