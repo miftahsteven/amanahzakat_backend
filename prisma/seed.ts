@@ -47,7 +47,7 @@ const menusData = [
   { kodeModul: 'KEUANGAN', kodeMenu: 'closing', namaMenu: 'Closing Periode Akuntansi', kodeTampil: 'CL', icon: 'Lock', urutan: 2, actions: [...read('Lihat Closing Periode'), { aksi: 'execute', nama: 'Eksekusi Closing Periode' }] },
   { kodeModul: 'KEUANGAN', kodeMenu: 'simba', namaMenu: 'Export Paket SIMBA BAZNAS', kodeTampil: 'SB', icon: 'Package', urutan: 3, actions: [...read('Lihat Export SIMBA'), { aksi: 'export', nama: 'Ekspor Paket SIMBA' }] },
 
-  { kodeModul: 'PERALATAN', kodeMenu: 'kalkulator', namaMenu: 'Kalkulator Zakat Maal/Fitrah', kodeTampil: 'KL', icon: 'Calculator', urutan: 1, actions: read('Gunakan Kalkulator ZIS') },
+  { kodeModul: 'PERALATAN', kodeMenu: 'kalkulator', namaMenu: 'Kalkulator Zakat Maal/Fitrah', kodeTampil: 'KL', icon: 'Calculator', urutan: 1, actions: [...read('Gunakan Kalkulator ZIS'), { aksi: 'update', nama: 'Kelola Parameter Nisab Zakat' }] },
   { kodeModul: 'PERALATAN', kodeMenu: 'portal', namaMenu: 'Portal Informasi Publik', kodeTampil: 'PO', icon: 'Info', urutan: 2, actions: read('Akses Portal Publik') },
 
   { kodeModul: 'PEMBERITAHUAN', kodeMenu: 'inbox', namaMenu: 'Pesan & Inbox Notifikasi', kodeTampil: 'IB', icon: 'Bell', urutan: 1, actions: read('Lihat Inbox & Notifikasi') },
@@ -1062,6 +1062,23 @@ async function main() {
     },
   });
   console.log('✅ Web Settings seeded');
+
+  // 12. Seed Zakat Calculator Config
+  await prisma.zakatConfig.upsert({
+    where: { id: 'default-zakat-config' },
+    update: {},
+    create: {
+      id: 'default-zakat-config',
+      hargaEmasPerGram: 1450000,
+      hargaBerasPerKg: 15000,
+      nisabEmasGram: 85,
+      nisabBerasKg: 522,
+      nisabPertanianKg: 653,
+      zakatRate: 0.025,
+      fitrahKgPerJiwa: 2.5,
+    },
+  });
+  console.log('✅ Zakat Config seeded');
 
   console.log('🎉 Comprehensive database seeding completed successfully!');
 }

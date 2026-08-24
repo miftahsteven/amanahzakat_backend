@@ -665,3 +665,41 @@ model WebSetting {
   updatedAt                   DateTime @updatedAt
 }
 
+// ==========================================
+// KALKULATOR ZIS — PARAMETER & RIWAYAT
+// ==========================================
+
+enum ZakatJenisHitung {
+  PROFESI
+  MAAL
+  PERTANIAN
+  FITRAH
+}
+
+model ZakatConfig {
+  id               String   @id @default("default-zakat-config")
+  hargaEmasPerGram Int      @default(1450000)
+  hargaBerasPerKg  Int      @default(15000)
+  nisabEmasGram    Float    @default(85)
+  nisabBerasKg     Float    @default(522)
+  nisabPertanianKg Float    @default(653)
+  zakatRate        Float    @default(0.025)
+  fitrahKgPerJiwa  Float    @default(2.5)
+  updatedById      String?
+
+  updatedAt        DateTime @updatedAt
+}
+
+model ZakatPerhitunganLog {
+  id           String           @id @default(cuid())
+  jenis        ZakatJenisHitung
+  inputData    Json
+  hasilNominal Int
+  wajibZakat   Boolean
+  sumber       String           @default("ERP") // ERP | WEB_PUBLIC
+  userId       String?
+  ipAddress    String?
+
+  createdAt    DateTime         @default(now())
+}
+

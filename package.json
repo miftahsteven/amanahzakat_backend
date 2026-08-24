@@ -22,6 +22,7 @@
     "prisma:seed:payroll": "ts-node-dev --transpile-only --no-notify prisma/seed-payroll.ts",
     "prisma:seed:keuangan": "ts-node-dev --transpile-only --no-notify prisma/seed-keuangan.ts",
     "prisma:seed:portal": "ts-node-dev --transpile-only --no-notify prisma/seed-portal.ts",
+    "prisma:seed:zakat": "ts-node-dev --transpile-only --no-notify prisma/seed-zakat.ts",
     "postinstall": "prisma generate"
   },
   "keywords": [

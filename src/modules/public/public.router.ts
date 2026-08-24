@@ -42,6 +42,9 @@ import {
   getMustahikSubmissions,
   createMustahikSubmission,
 } from './public.controller';
+import { getPublicZakatConfig, postPublicZakatHitung } from '../kalkulator/kalkulator.controller';
+import { hitungZakatSchema } from '../kalkulator/kalkulator.schema';
+import { validateRequest } from '../../middlewares/validate.middleware';
 
 const router = Router();
 
@@ -85,6 +88,10 @@ router.get('/campaigns/:slug', getCampaignBySlug);
 router.get('/hero-sliders', getPublicHeroSliders);
 router.get('/testimonials', getPublicTestimonials);
 router.get('/settings', getPublicWebSettings);
+
+// Zakat Calculator (public)
+router.get('/zakat/config', getPublicZakatConfig);
+router.post('/zakat/hitung', validateRequest(hitungZakatSchema), postPublicZakatHitung);
 
 // 3. Distributions & Impact
 router.get('/distributions', getDistributions);
