@@ -8,5 +8,6 @@ const router = Router();
 router.use(authenticateJWT);
 
 router.get('/summary', checkPermission('dashboard.read'), DashboardController.summary);
+router.get('/search', DashboardController.search);
 
 export default router;

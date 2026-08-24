@@ -200,4 +200,151 @@ export class DashboardService {
       recentTransactions,
     };
   }
+
+  static async search(query: string, permissions: string[], roles: string[]) {
+    const q = query.trim();
+    if (q.length < 2) {
+      return { menus: [], muzakki: [], mustahik: [], penerimaan: [], penyaluran: [] };
+    }
+
+    const isSuper = roles.includes('SUPER_ADMIN');
+    const can = (code: string) => isSuper || permissions.includes(code);
+    const canMenu = (kodeMenu: string) => isSuper || permissions.some((p) => p.startsWith(`${kodeMenu}.`));
+    const contains = { contains: q, mode: 'insensitive' as const };
+    const take = 5;
+    const needle = q.toLowerCase();
+
+    const domainMatch = (aliases: string[]) =>
+      aliases.some((alias) => {
+        if (needle.length <= 3) return alias.startsWith(needle);
+        return alias.includes(needle) || needle.includes(alias);
+      });
+
+    const wantMuzakki = domainMatch(['muzakki', 'donatur']);
+    const wantMustahik = domainMatch(['mustahik']);
+    const wantPenerimaan = domainMatch(['penerimaan', 'kwitansi', 'setoran']);
+    const wantPenyaluran = domainMatch(['penyaluran', 'distribusi', 'asnaf']);
+
+    const [menuRows, muzakkiHits, mustahikHits, penerimaanHits, penyaluranHits] = await Promise.all([
+      prisma.menu.findMany({
+        where: {
+          isActive: true,
+          OR: [
+            { namaMenu: contains },
+            { kodeMenu: contains },
+            { kodeTampil: contains },
+            { modul: { namaModul: contains } },
+            { modul: { kodeModul: contains } },
+          ],
+        },
+        include: { modul: { select: { namaModul: true } } },
+        orderBy: [{ urutan: 'asc' }, { namaMenu: 'asc' }],
+        take: 10,
+      }),
+      can('muzakki.read')
+        ? wantMuzakki
+          ? prisma.muzakki.findMany({
+              orderBy: { nama: 'asc' },
+              take,
+              select: { id: true, nomor: true, nama: true, tipe: true },
+            })
+          : prisma.muzakki.findMany({
+              where: {
+                OR: [{ nama: contains }, { nomor: contains }, { nikAtauNpwp: contains }, { email: contains }, { hp: contains }],
+              },
+              orderBy: { nama: 'asc' },
+              take,
+              select: { id: true, nomor: true, nama: true, tipe: true },
+            })
+        : Promise.resolve([]),
+      can('mustahik.read')
+        ? wantMustahik
+          ? prisma.mustahik.findMany({
+              orderBy: { nama: 'asc' },
+              take,
+              select: { id: true, nik: true, nama: true, kategoriAsnaf: true },
+            })
+          : prisma.mustahik.findMany({
+              where: {
+                OR: [{ nama: contains }, { nik: contains }, { hp: contains }, { alamat: contains }],
+              },
+              orderBy: { nama: 'asc' },
+              take,
+              select: { id: true, nik: true, nama: true, kategoriAsnaf: true },
+            })
+        : Promise.resolve([]),
+      can('penerimaan.read')
+        ? wantPenerimaan
+          ? prisma.transaksiPenerimaan.findMany({
+              orderBy: { createdAt: 'desc' },
+              take,
+              include: { muzakki: { select: { nama: true } } },
+            })
+          : prisma.transaksiPenerimaan.findMany({
+              where: {
+                OR: [{ noKwitansi: contains }, { jenisZis: contains }, { muzakki: { nama: contains } }],
+              },
+              orderBy: { createdAt: 'desc' },
+              take,
+              include: { muzakki: { select: { nama: true } } },
+            })
+        : Promise.resolve([]),
+      can('penyaluran.read')
+        ? wantPenyaluran
+          ? prisma.transaksiPenyaluran.findMany({
+              orderBy: { createdAt: 'desc' },
+              take,
+              include: { mustahik: { select: { nama: true } }, program: { select: { nama: true } } },
+            })
+          : prisma.transaksiPenyaluran.findMany({
+              where: {
+                OR: [
+                  { noPenyaluran: contains },
+                  { asnaf: contains },
+                  { mustahik: { nama: contains } },
+                  { program: { nama: contains } },
+                ],
+              },
+              orderBy: { createdAt: 'desc' },
+              take,
+              include: { mustahik: { select: { nama: true } }, program: { select: { nama: true } } },
+            })
+        : Promise.resolve([]),
+    ]);
+
+    return {
+      menus: menuRows
+        .filter((row) => canMenu(row.kodeMenu))
+        .map((row) => ({
+          id: '',
+          screen: row.kodeMenu,
+          title: row.namaMenu,
+          subtitle: `Menu · ${row.modul.namaModul}`,
+        })),
+      muzakki: muzakkiHits.map((row) => ({
+        id: row.id,
+        screen: 'muzakki' as const,
+        title: row.nama,
+        subtitle: `${row.nomor} · ${row.tipe}`,
+      })),
+      mustahik: mustahikHits.map((row) => ({
+        id: row.id,
+        screen: 'mustahik' as const,
+        title: row.nama,
+        subtitle: `${row.nik} · ${row.kategoriAsnaf}`,
+      })),
+      penerimaan: penerimaanHits.map((row) => ({
+        id: row.id,
+        screen: 'penerimaan' as const,
+        title: row.noKwitansi,
+        subtitle: `${row.muzakki.nama} · ${row.jenisZis} · Rp ${Math.round(row.nominal).toLocaleString('id-ID')}`,
+      })),
+      penyaluran: penyaluranHits.map((row) => ({
+        id: row.id,
+        screen: 'penyaluran' as const,
+        title: row.noPenyaluran,
+        subtitle: `${row.mustahik.nama} · ${row.program.nama}`,
+      })),
+    };
+  }
 }

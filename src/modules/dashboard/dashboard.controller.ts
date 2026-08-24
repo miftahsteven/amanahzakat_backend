@@ -19,4 +19,14 @@ export class DashboardController {
       next(error);
     }
   }
+
+  static async search(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const q = typeof req.query.q === 'string' ? req.query.q : '';
+      const data = await DashboardService.search(q, req.user?.permissions || [], req.user?.roles || []);
+      res.status(200).json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
