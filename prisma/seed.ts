@@ -51,6 +51,7 @@ const menusData = [
   { kodeModul: 'PERALATAN', kodeMenu: 'portal', namaMenu: 'Portal Informasi Publik', kodeTampil: 'PO', icon: 'Info', urutan: 2, actions: read('Akses Portal Publik') },
 
   { kodeModul: 'PEMBERITAHUAN', kodeMenu: 'inbox', namaMenu: 'Pesan & Inbox Notifikasi', kodeTampil: 'IB', icon: 'Bell', urutan: 1, actions: read('Lihat Inbox & Notifikasi') },
+  { kodeModul: 'PEMBERITAHUAN', kodeMenu: 'approval', namaMenu: 'Approval Berjenjang Penyaluran', kodeTampil: 'AP', icon: 'CheckCircle2', urutan: 2, actions: [...read('Lihat Approval Berjenjang'), { aksi: 'approve', nama: 'Setujui Pengajuan Penyaluran' }, { aksi: 'reject', nama: 'Tolak Pengajuan Penyaluran' }] },
 
   { kodeModul: 'PENGATURAN', kodeMenu: 'user-management', namaMenu: 'Manajemen Pengguna (CRUD)', kodeTampil: 'UM', icon: 'UserCog', urutan: 1, actions: [...read('Lihat Manajemen Pengguna'), { aksi: 'manage', nama: 'Kelola Pengguna' }] },
   { kodeModul: 'PENGATURAN', kodeMenu: 'module-management', namaMenu: 'Manajemen Modul & Menu', kodeTampil: 'MM', icon: 'Layers', urutan: 2, actions: [...read('Lihat Manajemen Modul'), { aksi: 'manage', nama: 'Kelola Modul & Menu' }] },

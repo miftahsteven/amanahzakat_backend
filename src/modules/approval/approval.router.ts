@@ -7,8 +7,8 @@ const router = Router();
 
 router.use(authenticateJWT);
 
-router.get('/', checkPermission('penyaluran.verify'), ApprovalController.list);
-router.patch('/:id/approve', checkPermission('penyaluran.verify'), ApprovalController.approve);
-router.patch('/:id/reject', checkPermission('penyaluran.verify'), ApprovalController.reject);
+router.get('/', checkPermission('approval.read'), ApprovalController.list);
+router.patch('/:id/approve', checkPermission('approval.approve'), ApprovalController.approve);
+router.patch('/:id/reject', checkPermission('approval.reject'), ApprovalController.reject);
 
 export default router;
