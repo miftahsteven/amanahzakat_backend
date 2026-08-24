@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../lib/prisma';
 
+const CAMPAIGN_STATUS = new Set(['Berjalan', 'Tercapai', 'Selesai']);
+
 export class CmsController {
   // ==========================================
   // 1. HERO SLIDERS CRUD
@@ -203,15 +205,52 @@ export class CmsController {
         isFeatured,
       } = req.body;
 
-      if (!nama || !program || !target || !tenggat) {
+      const namaTrim = typeof nama === 'string' ? nama.trim() : '';
+      const programTrim = typeof program === 'string' ? program.trim() : '';
+      const tenggatTrim = typeof tenggat === 'string' ? tenggat.trim() : '';
+      const ringkasTrim = typeof ringkas === 'string' ? ringkas.trim() : '';
+      const targetNum = Number(target);
+      const statusVal = typeof status === 'string' && status.trim() ? status.trim() : 'Berjalan';
+
+      if (!namaTrim || namaTrim.length < 5) {
         return res.status(400).json({
           success: false,
-          message: 'Nama, program, target nominal, dan tenggat waktu wajib diisi.',
+          message: 'Nama kampanye wajib diisi (minimal 5 karakter).',
+        });
+      }
+      if (!programTrim) {
+        return res.status(400).json({
+          success: false,
+          message: 'Pilar / kategori program wajib diisi.',
+        });
+      }
+      if (!Number.isFinite(targetNum) || targetNum < 1_000_000) {
+        return res.status(400).json({
+          success: false,
+          message: 'Target dana wajib diisi dan minimal Rp 1.000.000.',
+        });
+      }
+      if (!tenggatTrim) {
+        return res.status(400).json({
+          success: false,
+          message: 'Tenggat waktu wajib diisi.',
+        });
+      }
+      if (!ringkasTrim || ringkasTrim.length < 10) {
+        return res.status(400).json({
+          success: false,
+          message: 'Ringkasan singkat wajib diisi (minimal 10 karakter).',
+        });
+      }
+      if (!CAMPAIGN_STATUS.has(statusVal)) {
+        return res.status(400).json({
+          success: false,
+          message: `Status tidak valid. Pilih: ${[...CAMPAIGN_STATUS].join(', ')}.`,
         });
       }
 
       // Generate clean slug
-      const baseSlug = nama
+      const baseSlug = namaTrim
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)+/g, '');
@@ -221,24 +260,24 @@ export class CmsController {
       const created = await prisma.campaign.create({
         data: {
           slug,
-          nama,
-          program,
-          lokasi: lokasi || 'Indonesia',
-          target: Number(target),
+          nama: namaTrim,
+          program: programTrim,
+          lokasi: (typeof lokasi === 'string' && lokasi.trim()) || 'Indonesia',
+          target: targetNum,
           terkumpul: 0,
           donaturCount: 0,
-          tenggat,
-          ringkas: ringkas || nama,
-          cerita: cerita || ringkas || nama,
-          imageUrl: imageUrl || '/images/campaigns/sumur-sumba.jpg',
+          tenggat: tenggatTrim,
+          ringkas: ringkasTrim,
+          cerita: (typeof cerita === 'string' && cerita.trim()) || ringkasTrim,
+          imageUrl: (typeof imageUrl === 'string' && imageUrl.trim()) || '/images/campaigns/sumur-sumba.jpg',
           rincian: rincian || [
-            { item: 'Penyaluran Program Langsung', nilai: Number(target) * 0.9 },
-            { item: 'Operasional Lapangan & Amil', nilai: Number(target) * 0.1 },
+            { item: 'Penyaluran Program Langsung', nilai: targetNum * 0.9 },
+            { item: 'Operasional Lapangan & Amil', nilai: targetNum * 0.1 },
           ],
           kabar: [],
           donaturList: [],
-          status: status || 'Berjalan',
-          isFeatured: isFeatured || false,
+          status: statusVal,
+          isFeatured: Boolean(isFeatured),
         },
       });
 
@@ -255,12 +294,20 @@ export class CmsController {
   static async updateCampaign(req: Request, res: Response) {
     try {
       const id = parseInt(String(req.params.id), 10);
+      if (Number.isNaN(id)) {
+        return res.status(400).json({ success: false, message: 'ID kampanye tidak valid.' });
+      }
+
+      const existing = await prisma.campaign.findUnique({ where: { id } });
+      if (!existing) {
+        return res.status(404).json({ success: false, message: 'Program kampanye tidak ditemukan.' });
+      }
+
       const {
         nama,
         program,
         lokasi,
         target,
-        terkumpul,
         tenggat,
         ringkas,
         cerita,
@@ -270,21 +317,67 @@ export class CmsController {
         isFeatured,
       } = req.body;
 
+      if (nama !== undefined) {
+        const namaTrim = String(nama).trim();
+        if (!namaTrim || namaTrim.length < 5) {
+          return res.status(400).json({
+            success: false,
+            message: 'Nama kampanye wajib diisi (minimal 5 karakter).',
+          });
+        }
+      }
+      if (program !== undefined && !String(program).trim()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Pilar / kategori program wajib diisi.',
+        });
+      }
+      if (target !== undefined) {
+        const targetNum = Number(target);
+        if (!Number.isFinite(targetNum) || targetNum < 1_000_000) {
+          return res.status(400).json({
+            success: false,
+            message: 'Target dana wajib diisi dan minimal Rp 1.000.000.',
+          });
+        }
+      }
+      if (tenggat !== undefined && !String(tenggat).trim()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Tenggat waktu wajib diisi.',
+        });
+      }
+      if (ringkas !== undefined) {
+        const ringkasTrim = String(ringkas).trim();
+        if (!ringkasTrim || ringkasTrim.length < 10) {
+          return res.status(400).json({
+            success: false,
+            message: 'Ringkasan singkat wajib diisi (minimal 10 karakter).',
+          });
+        }
+      }
+      if (status !== undefined && !CAMPAIGN_STATUS.has(String(status).trim())) {
+        return res.status(400).json({
+          success: false,
+          message: `Status tidak valid. Pilih: ${[...CAMPAIGN_STATUS].join(', ')}.`,
+        });
+      }
+
+      // terkumpul / donaturCount tidak diubah dari CMS — diupdate lewat donasi web
       const updated = await prisma.campaign.update({
         where: { id },
         data: {
-          nama,
-          program,
-          lokasi,
-          target: target !== undefined ? Number(target) : undefined,
-          terkumpul: terkumpul !== undefined ? Number(terkumpul) : undefined,
-          tenggat,
-          ringkas,
-          cerita,
-          imageUrl,
-          rincian,
-          status,
-          isFeatured,
+          ...(nama !== undefined && { nama: String(nama).trim() }),
+          ...(program !== undefined && { program: String(program).trim() }),
+          ...(lokasi !== undefined && { lokasi: String(lokasi).trim() || 'Indonesia' }),
+          ...(target !== undefined && { target: Number(target) }),
+          ...(tenggat !== undefined && { tenggat: String(tenggat).trim() }),
+          ...(ringkas !== undefined && { ringkas: String(ringkas).trim() }),
+          ...(cerita !== undefined && { cerita: String(cerita).trim() }),
+          ...(imageUrl !== undefined && { imageUrl: String(imageUrl).trim() }),
+          ...(rincian !== undefined && { rincian }),
+          ...(status !== undefined && { status: String(status).trim() }),
+          ...(isFeatured !== undefined && { isFeatured: Boolean(isFeatured) }),
         },
       });
 
@@ -301,9 +394,33 @@ export class CmsController {
   static async deleteCampaign(req: Request, res: Response) {
     try {
       const id = parseInt(String(req.params.id), 10);
+      if (Number.isNaN(id)) {
+        return res.status(400).json({ success: false, message: 'ID kampanye tidak valid.' });
+      }
+
+      const existing = await prisma.campaign.findUnique({ where: { id } });
+      if (!existing) {
+        return res.status(404).json({ success: false, message: 'Program kampanye tidak ditemukan.' });
+      }
+
+      const donasiCount = await prisma.donasiWeb.count({ where: { campaignId: id } });
+      if (donasiCount > 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Kampanye tidak dapat dihapus karena sudah memiliki ${donasiCount} transaksi donasi. Ubah status menjadi "Selesai" jika kampanye sudah ditutup.`,
+        });
+      }
+
       await prisma.campaign.delete({ where: { id } });
       return res.json({ success: true, message: 'Program kampanye berhasil dihapus.' });
     } catch (error: any) {
+      if (error?.code === 'P2003') {
+        return res.status(400).json({
+          success: false,
+          message:
+            'Kampanye tidak dapat dihapus karena masih terhubung ke data donasi. Ubah status menjadi "Selesai" jika kampanye sudah ditutup.',
+        });
+      }
       return res.status(500).json({ success: false, message: error.message });
     }
   }

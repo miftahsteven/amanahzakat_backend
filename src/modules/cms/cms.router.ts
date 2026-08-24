@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { CmsController } from './cms.controller';
 import { authenticateJWT } from '../../middlewares/auth.middleware';
+import { checkPermission } from '../../middlewares/acl.middleware';
 
 const router = Router();
 
@@ -82,11 +83,16 @@ router.put('/hero-sliders/:id', CmsController.updateHeroSlider);
 router.delete('/hero-sliders/:id', CmsController.deleteHeroSlider);
 
 // 2. Campaigns CMS & Upload
-router.post('/upload-campaign', uploadCampaign.single('file'), CmsController.uploadCampaignImage);
-router.get('/campaigns', CmsController.getCampaigns);
-router.post('/campaigns', CmsController.createCampaign);
-router.put('/campaigns/:id', CmsController.updateCampaign);
-router.delete('/campaigns/:id', CmsController.deleteCampaign);
+router.post(
+  '/upload-campaign',
+  checkPermission(['cms-campaigns.create', 'cms-campaigns.update']),
+  uploadCampaign.single('file'),
+  CmsController.uploadCampaignImage,
+);
+router.get('/campaigns', checkPermission('cms-campaigns.read'), CmsController.getCampaigns);
+router.post('/campaigns', checkPermission('cms-campaigns.create'), CmsController.createCampaign);
+router.put('/campaigns/:id', checkPermission('cms-campaigns.update'), CmsController.updateCampaign);
+router.delete('/campaigns/:id', checkPermission('cms-campaigns.delete'), CmsController.deleteCampaign);
 
 
 // 3. Distributions CMS

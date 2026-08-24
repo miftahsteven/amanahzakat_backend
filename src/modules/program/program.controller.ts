@@ -93,4 +93,17 @@ export class ProgramController {
       next(error);
     }
   }
+
+  static async softDelete(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = await ProgramService.softDelete(String(req.params.id));
+      res.status(200).json({
+        success: true,
+        message: 'Program ZIS berhasil dihapus.',
+        data,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

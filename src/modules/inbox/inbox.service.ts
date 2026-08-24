@@ -53,6 +53,20 @@ export class InboxService {
       }),
     ]);
 
+    // If an approval has moved out of "Menunggu", mark its related inbox item as read.
+    // (notif text is `${ref} — ${perihal}`, so we can parse ref from pesan)
+    const pendingApprovalRefs = new Set(pendingApproval.map((a) => a.ref));
+    const existingApprovalNotifs = await prisma.notifikasi.findMany({
+      where: { judul: 'Pengajuan Menunggu Approval', kategori: 'Approval', dibaca: false },
+      take: 500,
+    });
+    for (const n of existingApprovalNotifs) {
+      const refFromPesan = n.pesan.split(' — ')[0]?.trim();
+      if (!refFromPesan || !pendingApprovalRefs.has(refFromPesan)) {
+        await prisma.notifikasi.update({ where: { id: n.id }, data: { dibaca: true } });
+      }
+    }
+
     const events: { judul: string; pesan: string; kategori: string; linkScreen: string }[] = [];
 
     for (const p of pendingPenerimaan) {

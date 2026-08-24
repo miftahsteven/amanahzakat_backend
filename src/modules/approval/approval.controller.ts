@@ -15,7 +15,7 @@ export class ApprovalController {
 
   static async approve(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const data = await ApprovalService.approve(String(req.params.id));
+      const data = await ApprovalService.approve(String(req.params.id), req.user?.userId);
       res.status(200).json({ success: true, data });
     } catch (error) {
       next(error);
@@ -25,7 +25,7 @@ export class ApprovalController {
   static async reject(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const catatan = typeof req.body?.catatan === 'string' ? req.body.catatan : undefined;
-      const data = await ApprovalService.reject(String(req.params.id), catatan);
+      const data = await ApprovalService.reject(String(req.params.id), catatan, req.user?.userId);
       res.status(200).json({ success: true, data });
     } catch (error) {
       next(error);

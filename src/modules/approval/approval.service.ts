@@ -78,7 +78,7 @@ export class ApprovalService {
     });
   }
 
-  static async approve(id: string) {
+  static async approve(id: string, userId?: string) {
     const item = await prisma.approvalPengajuan.findUnique({ where: { id } });
     if (!item || item.status !== 'Menunggu') {
       throw { statusCode: 404, message: 'Pengajuan approval tidak ditemukan.' };
@@ -97,19 +97,49 @@ export class ApprovalService {
           });
         }
       }
-      return prisma.approvalPengajuan.update({
+      const updated = await prisma.approvalPengajuan.update({
         where: { id },
         data: { status: 'Disetujui', tahap: nextTahap },
       });
+      await prisma.auditTrail.create({
+        data: {
+          userId,
+          action: 'approval.approve',
+          details: {
+            approvalId: id,
+            ref: item.ref,
+            penyaluranId: item.penyaluranId,
+            nominal: item.nominal,
+            tahap: nextTahap,
+            status: 'Disetujui',
+          },
+        },
+      });
+      return updated;
     }
 
-    return prisma.approvalPengajuan.update({
+    const updated = await prisma.approvalPengajuan.update({
       where: { id },
       data: { tahap: nextTahap },
     });
+    await prisma.auditTrail.create({
+      data: {
+        userId,
+        action: 'approval.approve',
+        details: {
+          approvalId: id,
+          ref: item.ref,
+          penyaluranId: item.penyaluranId,
+          nominal: item.nominal,
+          tahap: nextTahap,
+          status: 'Menunggu',
+        },
+      },
+    });
+    return updated;
   }
 
-  static async reject(id: string, catatan?: string) {
+  static async reject(id: string, catatan?: string, userId?: string) {
     const item = await prisma.approvalPengajuan.findUnique({ where: { id } });
     if (!item || item.status !== 'Menunggu') {
       throw { statusCode: 404, message: 'Pengajuan approval tidak ditemukan.' };
@@ -129,9 +159,24 @@ export class ApprovalService {
       }
     }
 
-    return prisma.approvalPengajuan.update({
+    const updated = await prisma.approvalPengajuan.update({
       where: { id },
       data: { status: 'Ditolak' },
     });
+    await prisma.auditTrail.create({
+      data: {
+        userId,
+        action: 'approval.reject',
+        details: {
+          approvalId: id,
+          ref: item.ref,
+          penyaluranId: item.penyaluranId,
+          nominal: item.nominal,
+          tahap: item.tahap,
+          catatan: catatan?.trim() || null,
+        },
+      },
+    });
+    return updated;
   }
 }

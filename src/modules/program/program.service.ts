@@ -12,16 +12,23 @@ const programSelect = {
   penanggungJawab: true,
 } as const;
 
+/** Soft-deleted programs keep the row but are hidden from active lists. */
+const activeProgramWhere = { status: { not: 'Dihapus' } } as const;
+
 export class ProgramService {
   static async list() {
     return prisma.programZis.findMany({
+      where: activeProgramWhere,
       orderBy: [{ pilar: 'asc' }, { nama: 'asc' }],
       select: programSelect,
     });
   }
 
   static async getById(id: string) {
-    const row = await prisma.programZis.findUnique({ where: { id }, select: programSelect });
+    const row = await prisma.programZis.findFirst({
+      where: { id, ...activeProgramWhere },
+      select: programSelect,
+    });
     if (!row) throw { statusCode: 404, message: 'Program ZIS tidak ditemukan.' };
 
     const [penyaluran, mitraList] = await Promise.all([
@@ -123,7 +130,7 @@ export class ProgramService {
       status: string;
     }>,
   ) {
-    const existing = await prisma.programZis.findUnique({ where: { id } });
+    const existing = await prisma.programZis.findFirst({ where: { id, ...activeProgramWhere } });
     if (!existing) {
       throw { statusCode: 404, message: 'Program ZIS tidak ditemukan.' };
     }
@@ -138,6 +145,28 @@ export class ProgramService {
         ...(input.penanggungJawab !== undefined && { penanggungJawab: input.penanggungJawab }),
         ...(input.status !== undefined && { status: input.status }),
       },
+      select: programSelect,
+    });
+  }
+
+  /** Soft delete via status Dihapus. Ditolak jika sudah punya transaksi penyaluran. */
+  static async softDelete(id: string) {
+    const existing = await prisma.programZis.findFirst({ where: { id, ...activeProgramWhere } });
+    if (!existing) {
+      throw { statusCode: 404, message: 'Program ZIS tidak ditemukan.' };
+    }
+
+    const penyaluranCount = await prisma.transaksiPenyaluran.count({ where: { programId: id } });
+    if (penyaluranCount > 0) {
+      throw {
+        statusCode: 400,
+        message: `Program tidak dapat dihapus karena sudah memiliki ${penyaluranCount} transaksi penyaluran. Ubah status menjadi "Selesai" jika program sudah selesai.`,
+      };
+    }
+
+    return prisma.programZis.update({
+      where: { id },
+      data: { status: 'Dihapus' },
       select: programSelect,
     });
   }

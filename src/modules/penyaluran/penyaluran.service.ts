@@ -100,7 +100,7 @@ async function mapPenyaluranDetail(row: PenyaluranRow) {
             ? `Menunggu tahap ${approval.tahap === 1 ? 'Maker' : approval.tahap === 2 ? 'Checker' : 'Approver'}`
             : 'Dicek terhadap pagu program',
         waktu: approvalDone || approvalRejected ? tgl : undefined,
-        done: approvalDone,
+        done: approvalDone || approvalRejected,
       },
       {
         title: 'Pencairan dana',
@@ -195,7 +195,9 @@ export class PenyaluranService {
   }) {
     const [mustahik, program] = await Promise.all([
       prisma.mustahik.findUnique({ where: { id: input.mustahikId } }),
-      prisma.programZis.findUnique({ where: { id: input.programId } }),
+      prisma.programZis.findFirst({
+        where: { id: input.programId, status: { not: 'Dihapus' } },
+      }),
     ]);
 
     if (!mustahik) {
