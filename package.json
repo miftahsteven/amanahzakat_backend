@@ -19,6 +19,7 @@
     "prisma:seed:penyaluran": "ts-node-dev --transpile-only --no-notify prisma/seed-penyaluran.ts",
     "prisma:seed:mitra": "ts-node-dev --transpile-only --no-notify prisma/seed-mitra.ts",
     "prisma:seed:upz": "ts-node-dev --transpile-only --no-notify prisma/seed-upz.ts",
+    "prisma:seed:payroll": "ts-node-dev --transpile-only --no-notify prisma/seed-payroll.ts",
     "postinstall": "prisma generate"
   },
   "keywords": [
