@@ -12,6 +12,7 @@ import programRouter from './modules/program/program.router';
 import mitraRouter from './modules/mitra/mitra.router';
 import upzRouter from './modules/upz/upz.router';
 import payrollRouter from './modules/payroll/payroll.router';
+import dashboardRouter from './modules/dashboard/dashboard.router';
 
 const router = Router();
 
@@ -39,5 +40,6 @@ router.use('/program', programRouter);
 router.use('/mitra', mitraRouter);
 router.use('/upz', upzRouter);
 router.use('/payroll', payrollRouter);
+router.use('/dashboard', dashboardRouter);
 
 export default router;
