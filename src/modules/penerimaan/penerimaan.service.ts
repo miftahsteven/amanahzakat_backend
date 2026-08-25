@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
+import { activeOnly, assertActiveRecord } from '../../lib/soft-delete';
 
 type PenerimaanWithMuzakki = Prisma.TransaksiPenerimaanGetPayload<{
   include: { muzakki: true };
@@ -173,6 +174,7 @@ export class PenerimaanService {
 
   static async listMuzakki() {
     return prisma.muzakki.findMany({
+      where: activeOnly,
       orderBy: { nama: 'asc' },
       select: {
         id: true,
@@ -200,50 +202,116 @@ export class PenerimaanService {
     programNama?: string;
   }) {
     const muzakki = await prisma.muzakki.findUnique({ where: { id: input.muzakkiId } });
-    if (!muzakki) {
-      throw { statusCode: 404, message: 'Muzakki tidak ditemukan.' };
-    }
+    assertActiveRecord(muzakki, 'Muzakki');
 
-    const noKwitansi = `KWT/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}/${Math.floor(1000 + Math.random() * 9000)}`;
+    const immediateKanal = ['Cash / Konter', 'Payroll UPZ'];
+    const isImmediate = immediateKanal.includes(input.kanal);
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const seq = Math.floor(1000 + Math.random() * 9000);
+    const noKwitansi = isImmediate
+      ? `KWT/${year}/${month}/${seq}`
+      : `KWT-PENDING/${year}/${month}/${seq}`;
+    const status = isImmediate ? 'Terverifikasi' : 'Menunggu Verifikasi';
 
     const trx = await prisma.transaksiPenerimaan.create({
       data: {
         noKwitansi,
-        tanggal: new Date().toISOString().slice(0, 10),
+        tanggal: now.toISOString().slice(0, 10),
         muzakkiId: input.muzakkiId,
         jenisZis: input.jenisZis,
         programNama: input.programNama,
         nominal: input.nominal,
         kanal: input.kanal,
         rekeningTujuan: input.rekeningTujuan || 'BSI 7001234567 (Zakat Maal)',
-        status: 'Terverifikasi',
+        status,
         catatan: input.catatan,
+        noSbmz: isImmediate
+          ? `SBMZ/${year}/${month}/ASK${Math.floor(100000 + Math.random() * 900000)}`
+          : undefined,
       },
       include: { muzakki: true },
     });
 
-    await prisma.muzakki.update({
-      where: { id: muzakki.id },
-      data: {
-        totalSetoran: { increment: input.nominal },
-        transaksiCount: { increment: 1 },
-      },
+    if (isImmediate) {
+      await prisma.muzakki.update({
+        where: { id: muzakki.id },
+        data: {
+          totalSetoran: { increment: input.nominal },
+          transaksiCount: { increment: 1 },
+        },
+      });
+    }
+
+    return mapPenerimaanRow(trx);
+  }
+
+  static async update(
+    id: string,
+    input: {
+      muzakkiId?: string;
+      jenisZis?: string;
+      nominal?: number;
+      kanal?: string;
+      rekeningTujuan?: string;
+      catatan?: string;
+      programNama?: string;
+    },
+  ) {
+    const existing = await prisma.transaksiPenerimaan.findUnique({
+      where: { id },
+      include: { muzakki: true },
     });
 
-    return {
-      id: trx.id,
-      noKwitansi: trx.noKwitansi,
-      tanggal: trx.tanggal,
-      muzakkiId: trx.muzakkiId,
-      muzakkiNama: trx.muzakki.nama,
-      muzakkiTipe: trx.muzakki.tipe as 'Perorangan' | 'Korporat' | 'UPZ',
-      jenisZis: trx.jenisZis,
-      nominal: trx.nominal,
-      kanal: trx.kanal,
-      rekeningTujuan: trx.rekeningTujuan,
-      status: trx.status as 'Terverifikasi',
-      catatan: trx.catatan,
-    };
+    if (!existing) {
+      throw { statusCode: 404, message: 'Transaksi penerimaan tidak ditemukan.' };
+    }
+
+    if (existing.status !== 'Menunggu Verifikasi') {
+      throw {
+        statusCode: 400,
+        message: 'Hanya transaksi berstatus Menunggu Verifikasi yang dapat diubah.',
+      };
+    }
+
+    if (input.muzakkiId) {
+      const muzakki = await prisma.muzakki.findUnique({ where: { id: input.muzakkiId } });
+      assertActiveRecord(muzakki, 'Muzakki');
+    }
+
+    const updated = await prisma.transaksiPenerimaan.update({
+      where: { id },
+      data: {
+        muzakkiId: input.muzakkiId ?? existing.muzakkiId,
+        jenisZis: input.jenisZis ?? existing.jenisZis,
+        nominal: input.nominal ?? existing.nominal,
+        kanal: input.kanal ?? existing.kanal,
+        rekeningTujuan: input.rekeningTujuan ?? existing.rekeningTujuan,
+        catatan: input.catatan !== undefined ? input.catatan : existing.catatan,
+        programNama: input.programNama !== undefined ? input.programNama : existing.programNama,
+      },
+      include: { muzakki: true },
+    });
+
+    return mapPenerimaanRow(updated);
+  }
+
+  static async remove(id: string) {
+    const existing = await prisma.transaksiPenerimaan.findUnique({ where: { id } });
+    if (!existing) {
+      throw { statusCode: 404, message: 'Transaksi penerimaan tidak ditemukan.' };
+    }
+
+    if (existing.status !== 'Menunggu Verifikasi') {
+      throw {
+        statusCode: 400,
+        message: 'Hanya transaksi berstatus Menunggu Verifikasi yang dapat dihapus.',
+      };
+    }
+
+    await prisma.transaksiPenerimaan.delete({ where: { id } });
+    return { id };
   }
 
   static async verify(id: string) {
@@ -257,7 +325,7 @@ export class PenerimaanService {
     }
 
     if (existing.status === 'Terverifikasi') {
-      return existing;
+      return mapPenerimaanRow(existing);
     }
 
     const noKwitansi =
@@ -277,19 +345,16 @@ export class PenerimaanService {
       include: { muzakki: true },
     });
 
-    return {
-      id: updated.id,
-      noKwitansi: updated.noKwitansi,
-      tanggal: updated.tanggal,
-      muzakkiId: updated.muzakkiId,
-      muzakkiNama: updated.muzakki.nama,
-      muzakkiTipe: updated.muzakki.tipe as 'Perorangan' | 'Korporat' | 'UPZ',
-      jenisZis: updated.jenisZis,
-      nominal: updated.nominal,
-      kanal: updated.kanal,
-      rekeningTujuan: updated.rekeningTujuan,
-      status: updated.status as 'Terverifikasi',
-      catatan: updated.catatan,
-    };
+    if (existing.status === 'Menunggu Verifikasi') {
+      await prisma.muzakki.update({
+        where: { id: updated.muzakkiId },
+        data: {
+          totalSetoran: { increment: updated.nominal },
+          transaksiCount: { increment: 1 },
+        },
+      });
+    }
+
+    return mapPenerimaanRow(updated);
   }
 }

@@ -13,5 +13,7 @@ router.get('/program', checkPermission('penyaluran.read'), PenyaluranController.
 router.get('/:id', checkPermission('penyaluran.read'), PenyaluranController.getById);
 router.post('/', checkPermission('penyaluran.create'), PenyaluranController.create);
 router.patch('/:id/disburse', checkPermission('penyaluran.verify'), PenyaluranController.disburse);
+router.patch('/:id', checkPermission('penyaluran.update'), PenyaluranController.update);
+router.delete('/:id', checkPermission('penyaluran.delete'), PenyaluranController.remove);
 
 export default router;

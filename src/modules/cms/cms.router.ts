@@ -76,11 +76,16 @@ const uploadCampaign = multer({
 router.use(authenticateJWT);
 
 // 1. Hero Sliders & Upload
-router.post('/upload-slider', uploadSlider.single('file'), CmsController.uploadSliderImage);
-router.get('/hero-sliders', CmsController.getHeroSliders);
-router.post('/hero-sliders', CmsController.createHeroSlider);
-router.put('/hero-sliders/:id', CmsController.updateHeroSlider);
-router.delete('/hero-sliders/:id', CmsController.deleteHeroSlider);
+router.post(
+  '/upload-slider',
+  checkPermission(['cms-hero.create', 'cms-hero.update']),
+  uploadSlider.single('file'),
+  CmsController.uploadSliderImage,
+);
+router.get('/hero-sliders', checkPermission('cms-hero.read'), CmsController.getHeroSliders);
+router.post('/hero-sliders', checkPermission('cms-hero.create'), CmsController.createHeroSlider);
+router.put('/hero-sliders/:id', checkPermission('cms-hero.update'), CmsController.updateHeroSlider);
+router.delete('/hero-sliders/:id', checkPermission('cms-hero.delete'), CmsController.deleteHeroSlider);
 
 // 2. Campaigns CMS & Upload
 router.post(
@@ -96,33 +101,33 @@ router.delete('/campaigns/:id', checkPermission('cms-campaigns.delete'), CmsCont
 
 
 // 3. Distributions CMS
-router.get('/distributions', CmsController.getDistributions);
-router.post('/distributions', CmsController.createDistribution);
-router.put('/distributions/:id', CmsController.updateDistribution);
-router.delete('/distributions/:id', CmsController.deleteDistribution);
+router.get('/distributions', checkPermission('cms-distributions.read'), CmsController.getDistributions);
+router.post('/distributions', checkPermission('cms-distributions.create'), CmsController.createDistribution);
+router.put('/distributions/:id', checkPermission('cms-distributions.update'), CmsController.updateDistribution);
+router.delete('/distributions/:id', checkPermission('cms-distributions.delete'), CmsController.deleteDistribution);
 
 // 4. Testimonials CMS
-router.get('/testimonials', CmsController.getTestimonials);
-router.post('/testimonials', CmsController.createTestimonial);
-router.put('/testimonials/:id', CmsController.updateTestimonial);
-router.delete('/testimonials/:id', CmsController.deleteTestimonial);
+router.get('/testimonials', checkPermission('cms-testimonials.read'), CmsController.getTestimonials);
+router.post('/testimonials', checkPermission('cms-testimonials.create'), CmsController.createTestimonial);
+router.put('/testimonials/:id', checkPermission('cms-testimonials.update'), CmsController.updateTestimonial);
+router.delete('/testimonials/:id', checkPermission('cms-testimonials.delete'), CmsController.deleteTestimonial);
 
 // 5. FAQs CMS
-router.get('/faqs', CmsController.getFaqs);
-router.post('/faqs', CmsController.createFaq);
-router.put('/faqs/:id', CmsController.updateFaq);
-router.delete('/faqs/:id', CmsController.deleteFaq);
+router.get('/faqs', checkPermission('cms-faqs.read'), CmsController.getFaqs);
+router.post('/faqs', checkPermission('cms-faqs.create'), CmsController.createFaq);
+router.put('/faqs/:id', checkPermission('cms-faqs.update'), CmsController.updateFaq);
+router.delete('/faqs/:id', checkPermission('cms-faqs.delete'), CmsController.deleteFaq);
 
 // 6. Impact Data CMS
-router.get('/impact', CmsController.getImpact);
-router.put('/impact', CmsController.updateImpact);
+router.get('/impact', checkPermission('cms-impact.read'), CmsController.getImpact);
+router.put('/impact', checkPermission('cms-impact.update'), CmsController.updateImpact);
 
 // 7. Assistance Submissions CMS
-router.get('/assistance', CmsController.getAssistanceSubmissions);
-router.put('/assistance/:id/status', CmsController.updateAssistanceStatus);
+router.get('/assistance', checkPermission('cms-assistance.read'), CmsController.getAssistanceSubmissions);
+router.put('/assistance/:id/status', checkPermission('cms-assistance.verify'), CmsController.updateAssistanceStatus);
 
 // 8. Web Settings CMS
-router.get('/settings', CmsController.getWebSettings);
-router.put('/settings', CmsController.updateWebSettings);
+router.get('/settings', checkPermission('cms-settings.read'), CmsController.getWebSettings);
+router.put('/settings', checkPermission('cms-settings.update'), CmsController.updateWebSettings);
 
 export default router;

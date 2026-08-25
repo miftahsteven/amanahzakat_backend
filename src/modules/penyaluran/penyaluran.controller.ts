@@ -69,4 +69,29 @@ export class PenyaluranController {
       next(error);
     }
   }
+
+  static async update(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = await PenyaluranService.update(String(req.params.id), req.body);
+      res.status(200).json({
+        success: true,
+        message: 'Pengajuan penyaluran berhasil diperbarui.',
+        data,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async remove(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await PenyaluranService.remove(String(req.params.id));
+      res.status(200).json({
+        success: true,
+        message: 'Pengajuan penyaluran berhasil dihapus.',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

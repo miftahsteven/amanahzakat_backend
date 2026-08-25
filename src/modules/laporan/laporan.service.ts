@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { detectWilayahBase, resolveMustahikCoords } from '../../lib/geocode';
+import { activeOnly } from '../../lib/soft-delete';
 
 function inDateRange(tanggal: string, dari?: string, sampai?: string): boolean {
   if (dari && tanggal < dari) return false;
@@ -135,7 +136,7 @@ export class LaporanService {
   static async getSebaran() {
     const [mustahikList, penyaluranRows] = await Promise.all([
       prisma.mustahik.findMany({
-        where: { statusSurvei: 'Terverifikasi' },
+        where: { ...activeOnly, statusSurvei: 'Terverifikasi' },
         select: { id: true, nama: true, alamat: true, kategoriAsnaf: true, lat: true, lng: true, nik: true },
       }),
       prisma.transaksiPenyaluran.findMany({
@@ -296,7 +297,7 @@ export class LaporanService {
     const [programs, mustahikList, penyaluranRows] = await Promise.all([
       prisma.programZis.findMany({ orderBy: { terpakai: 'desc' } }),
       prisma.mustahik.findMany({
-        where: { statusSurvei: 'Terverifikasi' },
+        where: { ...activeOnly, statusSurvei: 'Terverifikasi' },
         select: {
           id: true,
           kategoriAsnaf: true,

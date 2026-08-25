@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { detectWilayahNama } from '../../lib/geocode';
+import { activeOnly, assertActiveRecord } from '../../lib/soft-delete';
 import { ApprovalService } from '../approval/approval.service';
 
 type PenyaluranRow = Prisma.TransaksiPenyaluranGetPayload<{
@@ -146,7 +147,7 @@ export class PenyaluranService {
 
   static async listMustahik() {
     return prisma.mustahik.findMany({
-      where: { statusSurvei: 'Terverifikasi' },
+      where: { ...activeOnly, statusSurvei: 'Terverifikasi' },
       orderBy: { nama: 'asc' },
       select: {
         id: true,
@@ -200,9 +201,7 @@ export class PenyaluranService {
       }),
     ]);
 
-    if (!mustahik) {
-      throw { statusCode: 404, message: 'Mustahik tidak ditemukan.' };
-    }
+    assertActiveRecord(mustahik, 'Mustahik');
     if (!program) {
       throw { statusCode: 404, message: 'Program ZIS tidak ditemukan.' };
     }
@@ -239,6 +238,103 @@ export class PenyaluranService {
     });
 
     return mapRow(trx);
+  }
+
+  static async update(
+    id: string,
+    input: {
+      mustahikId?: string;
+      programId?: string;
+      asnaf?: string;
+      nominal?: number;
+      metodePembayaran?: string;
+      keterangan?: string;
+    },
+  ) {
+    const existing = await prisma.transaksiPenyaluran.findUnique({
+      where: { id },
+      include: { mustahik: true, program: true },
+    });
+
+    if (!existing) {
+      throw { statusCode: 404, message: 'Transaksi penyaluran tidak ditemukan.' };
+    }
+
+    if (existing.status !== 'Menunggu Approval') {
+      throw {
+        statusCode: 400,
+        message: 'Hanya pengajuan berstatus Menunggu Approval yang dapat diubah.',
+      };
+    }
+
+    const mustahikId = input.mustahikId ?? existing.mustahikId;
+    const programId = input.programId ?? existing.programId;
+    const nominal = input.nominal ?? existing.nominal;
+
+    const [mustahik, program] = await Promise.all([
+      prisma.mustahik.findUnique({ where: { id: mustahikId } }),
+      prisma.programZis.findFirst({ where: { id: programId, status: { not: 'Dihapus' } } }),
+    ]);
+
+    if (!mustahik) throw { statusCode: 404, message: 'Mustahik tidak ditemukan.' };
+    assertActiveRecord(mustahik, 'Mustahik');
+    if (!program) throw { statusCode: 404, message: 'Program ZIS tidak ditemukan.' };
+
+    const potonganAmil = Math.round(nominal * 0.075);
+    const danaMustahik = nominal - potonganAmil;
+    const asnaf = input.asnaf ?? existing.asnaf;
+    const keterangan = input.keterangan ?? existing.keterangan;
+
+    const trx = await prisma.$transaction(async (tx) => {
+      const row = await tx.transaksiPenyaluran.update({
+        where: { id },
+        data: {
+          mustahikId,
+          programId,
+          asnaf,
+          nominal,
+          metodePembayaran: input.metodePembayaran ?? existing.metodePembayaran,
+          keterangan,
+          rekeningTujuan: mustahik.rekeningBank,
+          potonganAmil,
+          danaMustahik,
+        },
+        include: { mustahik: true, program: true },
+      });
+
+      await tx.approvalPengajuan.updateMany({
+        where: { penyaluranId: id, status: 'Menunggu' },
+        data: {
+          perihal: `${keterangan} — ${mustahik.nama} (${asnaf})`,
+          nominal,
+        },
+      });
+
+      return row;
+    });
+
+    return mapRow(trx);
+  }
+
+  static async remove(id: string) {
+    const existing = await prisma.transaksiPenyaluran.findUnique({ where: { id } });
+    if (!existing) {
+      throw { statusCode: 404, message: 'Transaksi penyaluran tidak ditemukan.' };
+    }
+
+    if (existing.status !== 'Menunggu Approval') {
+      throw {
+        statusCode: 400,
+        message: 'Hanya pengajuan berstatus Menunggu Approval yang dapat dihapus.',
+      };
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.approvalPengajuan.deleteMany({ where: { penyaluranId: id } });
+      await tx.transaksiPenyaluran.delete({ where: { id } });
+    });
+
+    return { id };
   }
 
   static async disburse(id: string) {

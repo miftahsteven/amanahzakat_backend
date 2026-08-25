@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { activeOnly } from '../../lib/soft-delete';
 
 const upzSelect = {
   id: true,
@@ -64,7 +65,7 @@ export class UpzService {
         },
       }),
       prisma.muzakki.findMany({
-        where: { tipe: 'UPZ' },
+        where: { ...activeOnly, tipe: 'UPZ' },
         orderBy: { totalSetoran: 'desc' },
         take: 8,
         select: { id: true, nomor: true, nama: true, totalSetoran: true, transaksiCount: true },
@@ -168,7 +169,7 @@ export class UpzService {
         select: upzSelect,
       }),
       prisma.muzakki.findMany({
-        where: { tipe: 'UPZ' },
+        where: { ...activeOnly, tipe: 'UPZ' },
         orderBy: { totalSetoran: 'desc' },
       }),
       prisma.transaksiPenerimaan.findMany({

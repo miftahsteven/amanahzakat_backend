@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { activeOnly } from '../../lib/soft-delete';
 
 const BULAN_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
@@ -244,12 +245,14 @@ export class DashboardService {
       can('muzakki.read')
         ? wantMuzakki
           ? prisma.muzakki.findMany({
+              where: activeOnly,
               orderBy: { nama: 'asc' },
               take,
               select: { id: true, nomor: true, nama: true, tipe: true },
             })
           : prisma.muzakki.findMany({
               where: {
+                ...activeOnly,
                 OR: [{ nama: contains }, { nomor: contains }, { nikAtauNpwp: contains }, { email: contains }, { hp: contains }],
               },
               orderBy: { nama: 'asc' },
@@ -260,12 +263,14 @@ export class DashboardService {
       can('mustahik.read')
         ? wantMustahik
           ? prisma.mustahik.findMany({
+              where: activeOnly,
               orderBy: { nama: 'asc' },
               take,
               select: { id: true, nik: true, nama: true, kategoriAsnaf: true },
             })
           : prisma.mustahik.findMany({
               where: {
+                ...activeOnly,
                 OR: [{ nama: contains }, { nik: contains }, { hp: contains }, { alamat: contains }],
               },
               orderBy: { nama: 'asc' },

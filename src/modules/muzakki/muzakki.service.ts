@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { activeOnly, assertActiveRecord } from '../../lib/soft-delete';
 
 const muzakkiSelect = {
   id: true,
@@ -121,6 +122,7 @@ async function mapMuzakkiDetail(row: {
 export class MuzakkiService {
   static async list() {
     return prisma.muzakki.findMany({
+      where: activeOnly,
       orderBy: [{ nomor: 'desc' }],
       select: muzakkiSelect,
     });
@@ -142,6 +144,7 @@ export class MuzakkiService {
   }) {
     const existing = await prisma.muzakki.findFirst({
       where: {
+        ...activeOnly,
         OR: [{ email: input.email }, { nikAtauNpwp: input.nikAtauNpwp }],
       },
     });
@@ -170,5 +173,58 @@ export class MuzakkiService {
       },
       select: muzakkiSelect,
     });
+  }
+
+  static async update(
+    id: string,
+    input: {
+      nama: string;
+      tipe: string;
+      nikAtauNpwp: string;
+      hp: string;
+      email: string;
+      alamat: string;
+    },
+  ) {
+    const existing = await prisma.muzakki.findUnique({ where: { id } });
+    assertActiveRecord(existing, 'Muzakki');
+
+    const duplicate = await prisma.muzakki.findFirst({
+      where: {
+        ...activeOnly,
+        id: { not: id },
+        OR: [{ email: input.email }, { nikAtauNpwp: input.nikAtauNpwp }],
+      },
+    });
+    if (duplicate) {
+      throw {
+        statusCode: 409,
+        message: 'Email atau NIK/NPWP sudah terdaftar pada muzakki lain.',
+      };
+    }
+
+    return prisma.muzakki.update({
+      where: { id },
+      data: {
+        nama: input.nama,
+        tipe: input.tipe,
+        nikAtauNpwp: input.nikAtauNpwp,
+        hp: input.hp,
+        email: input.email,
+        alamat: input.alamat,
+      },
+      select: muzakkiSelect,
+    });
+  }
+
+  static async remove(id: string) {
+    const existing = await prisma.muzakki.findUnique({ where: { id } });
+    assertActiveRecord(existing, 'Muzakki');
+
+    await prisma.muzakki.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+    return { id };
   }
 }

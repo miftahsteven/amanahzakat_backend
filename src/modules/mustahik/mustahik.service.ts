@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { coordsFromAlamat, detectWilayahNama, resolveMustahikCoords } from '../../lib/geocode';
+import { activeOnly, assertActiveRecord } from '../../lib/soft-delete';
 
 const mustahikSelect = {
   id: true,
@@ -155,10 +156,12 @@ function computeSkorKelayakan(penghasilanBulanan: number, jumlahTanggungan: numb
 export class MustahikService {
   static async list(asnaf?: string) {
     const rows = await prisma.mustahik.findMany({
-      where:
-        asnaf && asnaf !== 'Semua'
-          ? { kategoriAsnaf: { equals: asnaf, mode: 'insensitive' } }
-          : undefined,
+      where: {
+        ...activeOnly,
+        ...(asnaf && asnaf !== 'Semua'
+          ? { kategoriAsnaf: { equals: asnaf, mode: 'insensitive' as const } }
+          : {}),
+      },
       orderBy: [{ skorKelayakan: 'desc' }, { nama: 'asc' }],
       select: mustahikSelect,
     });
@@ -172,6 +175,9 @@ export class MustahikService {
   }
 
   static async updateGps(id: string, lat: number, lng: number) {
+    const existing = await prisma.mustahik.findUnique({ where: { id } });
+    assertActiveRecord(existing, 'Mustahik');
+
     const row = await prisma.mustahik.update({
       where: { id },
       data: { lat, lng },
@@ -191,8 +197,8 @@ export class MustahikService {
     penghasilanBulanan: number;
     rekeningBank: string;
   }) {
-    const existing = await prisma.mustahik.findUnique({
-      where: { nik: input.nik },
+    const existing = await prisma.mustahik.findFirst({
+      where: { nik: input.nik, ...activeOnly },
     });
 
     if (existing) {
@@ -225,5 +231,57 @@ export class MustahikService {
       select: mustahikSelect,
     });
     return mapMustahikDetail(row);
+  }
+
+  static async update(
+    id: string,
+    input: {
+      nama: string;
+      kategoriAsnaf: string;
+      hp: string;
+      alamat: string;
+      pekerjaan: string;
+      jumlahTanggungan: number;
+      penghasilanBulanan: number;
+      rekeningBank: string;
+      statusSurvei?: string;
+    },
+  ) {
+    const existing = await prisma.mustahik.findUnique({ where: { id } });
+    assertActiveRecord(existing, 'Mustahik');
+
+    const skorKelayakan = computeSkorKelayakan(input.penghasilanBulanan, input.jumlahTanggungan);
+    const alamatChanged = input.alamat.trim() !== existing.alamat;
+    const gps = alamatChanged ? coordsFromAlamat(input.alamat, existing.nik) : null;
+
+    const row = await prisma.mustahik.update({
+      where: { id },
+      data: {
+        nama: input.nama,
+        kategoriAsnaf: input.kategoriAsnaf,
+        hp: input.hp,
+        alamat: input.alamat,
+        pekerjaan: input.pekerjaan,
+        jumlahTanggungan: input.jumlahTanggungan,
+        penghasilanBulanan: input.penghasilanBulanan,
+        rekeningBank: input.rekeningBank,
+        statusSurvei: input.statusSurvei ?? existing.statusSurvei,
+        skorKelayakan,
+        ...(gps ? { lat: gps.lat, lng: gps.lng } : {}),
+      },
+      select: mustahikSelect,
+    });
+    return mapMustahikDetail(row);
+  }
+
+  static async remove(id: string) {
+    const existing = await prisma.mustahik.findUnique({ where: { id } });
+    assertActiveRecord(existing, 'Mustahik');
+
+    await prisma.mustahik.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+    return { id };
   }
 }

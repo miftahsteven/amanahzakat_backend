@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { activeOnly } from '../../lib/soft-delete';
 
 function isZakatType(jenisZis: string): boolean {
   const j = jenisZis.toLowerCase();
@@ -66,8 +67,8 @@ export class KeuanganService {
       prisma.formSimba.findMany({ orderBy: { kodeForm: 'asc' } }),
       prisma.transaksiPenerimaan.findMany({ where: { status: 'Terverifikasi' } }),
       prisma.transaksiPenyaluran.findMany({ where: { status: 'Sudah Tersalurkan' } }),
-      prisma.muzakki.count(),
-      prisma.mustahik.count({ where: { statusSurvei: 'Terverifikasi' } }),
+      prisma.muzakki.count({ where: activeOnly }),
+      prisma.mustahik.count({ where: { ...activeOnly, statusSurvei: 'Terverifikasi' } }),
       prisma.accountCoA.findMany(),
     ]);
 

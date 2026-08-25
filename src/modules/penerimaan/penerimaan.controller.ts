@@ -57,4 +57,29 @@ export class PenerimaanController {
       next(error);
     }
   }
+
+  static async update(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = await PenerimaanService.update(String(req.params.id), req.body);
+      res.status(200).json({
+        success: true,
+        message: 'Transaksi penerimaan berhasil diperbarui.',
+        data,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async remove(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await PenerimaanService.remove(String(req.params.id));
+      res.status(200).json({
+        success: true,
+        message: 'Transaksi penerimaan berhasil dihapus.',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

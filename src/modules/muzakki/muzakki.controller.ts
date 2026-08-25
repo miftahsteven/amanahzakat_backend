@@ -51,4 +51,47 @@ export class MuzakkiController {
       next(error);
     }
   }
+
+  static async update(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { nama, tipe, nikAtauNpwp, hp, email, alamat } = req.body;
+
+      if (!nama || !tipe || !nikAtauNpwp || !hp || !email || !alamat) {
+        res.status(400).json({
+          success: false,
+          message: 'Nama, kategori, NIK/NPWP, HP, email, dan alamat wajib diisi.',
+        });
+        return;
+      }
+
+      const data = await MuzakkiService.update(String(req.params.id), {
+        nama: String(nama).trim(),
+        tipe: String(tipe),
+        nikAtauNpwp: String(nikAtauNpwp).trim(),
+        hp: String(hp).trim(),
+        email: String(email).trim().toLowerCase(),
+        alamat: String(alamat).trim(),
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Data muzakki berhasil diperbarui.',
+        data,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async remove(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await MuzakkiService.remove(String(req.params.id));
+      res.status(200).json({
+        success: true,
+        message: 'Muzakki berhasil dihapus.',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

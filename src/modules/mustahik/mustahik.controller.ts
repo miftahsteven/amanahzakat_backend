@@ -87,4 +87,60 @@ export class MustahikController {
       next(error);
     }
   }
+
+  static async update(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const {
+        nama,
+        kategoriAsnaf,
+        hp,
+        alamat,
+        pekerjaan,
+        jumlahTanggungan,
+        penghasilanBulanan,
+        rekeningBank,
+        statusSurvei,
+      } = req.body;
+
+      if (!nama || !kategoriAsnaf || !hp || !alamat || !pekerjaan || !rekeningBank) {
+        res.status(400).json({
+          success: false,
+          message: 'Nama, asnaf, HP, alamat, pekerjaan, dan rekening bank wajib diisi.',
+        });
+        return;
+      }
+
+      const data = await MustahikService.update(String(req.params.id), {
+        nama: String(nama).trim(),
+        kategoriAsnaf: String(kategoriAsnaf),
+        hp: String(hp).trim(),
+        alamat: String(alamat).trim(),
+        pekerjaan: String(pekerjaan).trim(),
+        jumlahTanggungan: Number(jumlahTanggungan) || 0,
+        penghasilanBulanan: Number(penghasilanBulanan) || 0,
+        rekeningBank: String(rekeningBank).trim(),
+        statusSurvei: statusSurvei ? String(statusSurvei) : undefined,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Data mustahik berhasil diperbarui.',
+        data,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async remove(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await MustahikService.remove(String(req.params.id));
+      res.status(200).json({
+        success: true,
+        message: 'Mustahik berhasil dihapus.',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

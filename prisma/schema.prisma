@@ -148,8 +148,11 @@ model Muzakki {
   tanggalBergabung String
   penerimaanList   TransaksiPenerimaan[]
 
+  deletedAt        DateTime?
   createdAt        DateTime               @default(now())
   updatedAt        DateTime               @updatedAt
+
+  @@index([deletedAt])
 }
 
 model TransaksiPenerimaan {
@@ -177,7 +180,7 @@ model TransaksiPenerimaan {
 
 model Mustahik {
   id                   String                @id @default(cuid())
-  nik                  String                @unique
+  nik                  String
   nama                 String
   kategoriAsnaf        String                // Fakir, Miskin, Amil, Mualaf, Riqab, Gharim, Fisabilillah, Ibnus Sabil
   hp                   String
@@ -193,8 +196,11 @@ model Mustahik {
   lng                  Float?
   penyaluranList       TransaksiPenyaluran[]
 
+  deletedAt            DateTime?
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
+
+  @@index([deletedAt])
 }
 
 model ProgramZis {

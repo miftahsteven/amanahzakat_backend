@@ -10,5 +10,7 @@ router.use(authenticateJWT);
 router.get('/', checkPermission('muzakki.read'), MuzakkiController.list);
 router.get('/:id', checkPermission('muzakki.read'), MuzakkiController.getById);
 router.post('/', checkPermission('muzakki.create'), MuzakkiController.create);
+router.patch('/:id', checkPermission('muzakki.update'), MuzakkiController.update);
+router.delete('/:id', checkPermission('muzakki.delete'), MuzakkiController.remove);
 
 export default router;
