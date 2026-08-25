@@ -17,6 +17,7 @@
     "prisma:seed:penerimaan": "ts-node-dev --transpile-only --no-notify prisma/seed-penerimaan.ts",
     "prisma:seed:campaigns": "ts-node-dev --transpile-only --no-notify prisma/seed-campaigns.ts",
     "prisma:seed:webpublic-media": "ts-node-dev --transpile-only --no-notify prisma/seed-webpublic-media.ts",
+    "prisma:seed:bukti-menu": "ts-node-dev --transpile-only --no-notify prisma/seed-bukti-menu.ts",
     "prisma:seed:penyaluran": "ts-node-dev --transpile-only --no-notify prisma/seed-penyaluran.ts",
     "prisma:seed:mitra": "ts-node-dev --transpile-only --no-notify prisma/seed-mitra.ts",
     "prisma:seed:upz": "ts-node-dev --transpile-only --no-notify prisma/seed-upz.ts",
