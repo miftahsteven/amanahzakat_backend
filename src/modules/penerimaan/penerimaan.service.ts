@@ -1,12 +1,14 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { activeOnly, assertActiveRecord } from '../../lib/soft-delete';
+import { buildBszPublicVerifyUrl } from '../../lib/bsz-sign';
 
 type PenerimaanWithMuzakki = Prisma.TransaksiPenerimaanGetPayload<{
   include: { muzakki: true };
 }>;
 
 function mapPenerimaanRow(row: PenerimaanWithMuzakki) {
+  const status = row.status as 'Terverifikasi' | 'Menunggu Verifikasi' | 'Ditolak';
   return {
     id: row.id,
     noKwitansi: row.noKwitansi,
@@ -20,8 +22,10 @@ function mapPenerimaanRow(row: PenerimaanWithMuzakki) {
     nominal: row.nominal,
     kanal: row.kanal,
     rekeningTujuan: row.rekeningTujuan,
-    status: row.status as 'Terverifikasi' | 'Menunggu Verifikasi' | 'Ditolak',
+    status,
     catatan: row.catatan,
+    /** Signed public URL for BSZ QR (only when verified). */
+    verifyUrl: status === 'Terverifikasi' ? buildBszPublicVerifyUrl(row.noKwitansi) : null,
   };
 }
 

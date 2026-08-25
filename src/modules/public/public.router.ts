@@ -17,6 +17,7 @@ import {
   updatePaymentStatus,
   getReceiptData,
   verifyDocument,
+  verifyBszSigned,
   submitAssistance,
   checkAssistanceStatus,
   authLogin,
@@ -109,7 +110,8 @@ router.get('/donations/:transactionId', getPaymentStatus);
 router.post('/donations/:transactionId/pay', updatePaymentStatus);
 router.get('/donations/:transactionId/receipt', getReceiptData);
 
-// 6. Verification
+// 6. Verification (signed BSZ for QR must be registered before :code catch-all)
+router.get('/verification/bsz', verifyBszSigned);
 router.get('/verification', verifyDocument);
 router.get('/verification/:code(*)', verifyDocument);
 

@@ -8,7 +8,7 @@ import {
   incrementCampaignStatsIfLinked,
   syncPendingPenerimaanFromWeb,
 } from '../../lib/penerimaan-sync';
-
+import { normalizeBszRef, verifyBszSignature } from '../../lib/bsz-sign';
 // In-Memory OTP Store for Registrations (TTL: 5 Minutes)
 interface PendingOtpRegistration {
   code: string;
@@ -438,10 +438,132 @@ export const getReceiptData = async (req: Request, res: Response) => {
 // ==========================================
 // 5. VERIFICATION CONTROLLER
 // ==========================================
+
+function formatBszDatePublic(tanggal: string): string {
+  if (!tanggal) return '-';
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(tanggal)) return tanggal;
+  if (/^\d{4}-\d{2}-\d{2}/.test(tanggal)) {
+    const [y, m, d] = tanggal.slice(0, 10).split('-');
+    return `${d}/${m}/${y}`;
+  }
+  const parsed = new Date(tanggal);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed.toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  }
+  return tanggal;
+}
+
+function getAkunGlPenerimaanPublic(jenisZis: string): string {
+  if (jenisZis.includes('Maal')) return '4011000030 - Penerimaan Zakat Maal';
+  if (jenisZis.includes('Profesi')) return '4011000031 - Penerimaan Zakat Profesi';
+  if (jenisZis.includes('Fitrah')) return '4011000032 - Penerimaan Zakat Fitrah';
+  if (jenisZis === 'Infak' || jenisZis.includes('Infak')) return '4021000010 - Penerimaan Infak';
+  if (jenisZis === 'Shodaqoh' || jenisZis.includes('Shodaqoh')) return '4021000020 - Penerimaan Shodaqoh';
+  if (jenisZis.includes('Wakaf')) return '4031000010 - Penerimaan Wakaf Uang';
+  return '4011000030 - Penerimaan ZIS';
+}
+
+function buildPublicSbmzNumber(row: { noKwitansi: string; noSbmz: string | null; tanggal: string }): string {
+  if (row.noSbmz) return row.noSbmz;
+  const tgl = formatBszDatePublic(row.tanggal);
+  const parts = tgl.split('/');
+  const yy = parts[2]?.slice(2) || '26';
+  const mm = parts[1] || '01';
+  const code = (row.noKwitansi || '').replace(/[^0-9A-Za-z]/g, '').slice(-9) || `${yy}${mm}001`;
+  return `SBMZ/20${yy}/${mm}/${code}`;
+}
+
+/**
+ * Signed public BSZ lookup for QR / tax officers.
+ * GET /public/verification/bsz?ref=NO_BUKTI&sig=HMAC
+ * No login. Full detail only when HMAC matches.
+ */
+export const verifyBszSigned = async (req: Request, res: Response) => {
+  try {
+    const ref = normalizeBszRef(String(req.query.ref || ''));
+    const sig = String(req.query.sig || '');
+
+    if (!ref || !sig) {
+      return res.status(400).json({
+        isValid: false,
+        documentNumber: ref || '',
+        errorMessage: 'Tautan verifikasi tidak lengkap. Pindai ulang QR pada bukti setor resmi.',
+      });
+    }
+
+    if (!verifyBszSignature(ref, sig)) {
+      return res.status(403).json({
+        isValid: false,
+        documentNumber: ref,
+        errorMessage:
+          'Tanda tangan tautan tidak valid. Dokumen mungkin dipalsukan atau tautan diubah.',
+      });
+    }
+
+    const erpTx = await prisma.transaksiPenerimaan.findFirst({
+      where: {
+        noKwitansi: { equals: ref, mode: 'insensitive' },
+        status: 'Terverifikasi',
+      },
+      include: { muzakki: true },
+    });
+
+    if (!erpTx) {
+      return res.status(404).json({
+        isValid: false,
+        documentNumber: ref,
+        errorMessage: 'Bukti setor tidak ditemukan atau belum berstatus Terverifikasi.',
+      });
+    }
+
+    const noSbmz = buildPublicSbmzNumber(erpTx);
+    const paymentDate = formatBszDatePublic(erpTx.tanggal);
+    const glAccount = getAkunGlPenerimaanPublic(erpTx.jenisZis);
+    const formattedAmount = `Rp ${Math.round(erpTx.nominal).toLocaleString('id-ID')}`;
+
+    return res.status(200).json({
+      isValid: true,
+      documentNumber: erpTx.noKwitansi,
+      noKwitansi: erpTx.noKwitansi,
+      noSbmz,
+      donorName: erpTx.muzakki.nama,
+      fundType: erpTx.jenisZis,
+      amount: erpTx.nominal,
+      formattedAmount,
+      campaignTitle: erpTx.programNama || erpTx.jenisZis,
+      paymentMethod: erpTx.kanal,
+      paymentDate,
+      status: erpTx.status,
+      glAccount,
+      institutionName: 'Lembaga Amil Zakat Nasional AmanahZakat',
+      institutionNpwp: '01.234.567.8-041.000',
+      notes:
+        'Bukti setor ini sah tanpa tanda tangan basah dan dapat digunakan sebagai pengurang penghasilan kena pajak sesuai PP No. 60 Tahun 2010.',
+    });
+  } catch (error) {
+    console.error('[verifyBszSigned]', error);
+    const unreachable =
+      error instanceof Error &&
+      (error.message.includes("Can't reach database") || error.name === 'PrismaClientInitializationError');
+    return res.status(unreachable ? 503 : 500).json({
+      isValid: false,
+      documentNumber: '',
+      errorMessage: unreachable
+        ? 'Layanan verifikasi sementara tidak dapat terhubung ke basis data. Coba beberapa saat lagi.'
+        : 'Gagal memverifikasi bukti setor.',
+    });
+  }
+};
+
 export const verifyDocument = async (req: Request, res: Response) => {
   try {
     const rawCode = (req.params.code || req.query.code || '') as string;
     const cleanCode = decodeURIComponent(rawCode).trim();
+    const sig = typeof req.query.sig === 'string' ? req.query.sig : '';
 
     // Check SbmzDoc table
     const sbmz = await prisma.sbmzDoc.findFirst({
@@ -470,7 +592,7 @@ export const verifyDocument = async (req: Request, res: Response) => {
       });
     }
 
-    // Check TransaksiPenerimaan ERP
+    // TransaksiPenerimaan ERP — require valid HMAC so nomor bukti cannot be enumerated
     const erpTx = await prisma.transaksiPenerimaan.findFirst({
       where: {
         OR: [
@@ -482,6 +604,23 @@ export const verifyDocument = async (req: Request, res: Response) => {
     });
 
     if (erpTx) {
+      if (!verifyBszSignature(erpTx.noKwitansi, sig)) {
+        return res.status(403).json({
+          isValid: false,
+          documentNumber: cleanCode,
+          errorMessage:
+            'Detail bukti setor ERP hanya dapat dibuka melalui tautan QR resmi (bertanda tangan). Pindai QR pada dokumen BSZ.',
+        });
+      }
+
+      if (erpTx.status !== 'Terverifikasi') {
+        return res.status(404).json({
+          isValid: false,
+          documentNumber: cleanCode,
+          errorMessage: 'Bukti setor belum berstatus Terverifikasi.',
+        });
+      }
+
       return res.status(200).json({
         isValid: true,
         documentNumber: erpTx.noSbmz || erpTx.noKwitansi,
@@ -491,10 +630,13 @@ export const verifyDocument = async (req: Request, res: Response) => {
         formattedAmount: `Rp ${Math.round(erpTx.nominal).toLocaleString('id-ID')}`,
         campaignTitle: erpTx.programNama || 'ZIS & Program Kebaikan',
         paymentMethod: erpTx.kanal,
-        paymentDate: erpTx.tanggal,
+        paymentDate: formatBszDatePublic(erpTx.tanggal),
+        glAccount: getAkunGlPenerimaanPublic(erpTx.jenisZis),
+        status: erpTx.status,
         institutionName: 'Lembaga Amil Zakat Nasional AmanahZakat Peduli',
-        institutionNpwp: '02.456.789.1-012.000',
-        notes: 'Dokumen tercatat sah pada basis data akuntansi penerimaan LAZNAS.',
+        institutionNpwp: '01.234.567.8-041.000',
+        notes:
+          'Bukti setor ini sah tanpa tanda tangan basah dan dapat digunakan sebagai pengurang penghasilan kena pajak sesuai PP No. 60 Tahun 2010.',
       });
     }
 
@@ -519,7 +661,9 @@ export const verifyDocument = async (req: Request, res: Response) => {
         formattedAmount: `Rp ${Math.round(donasi.amount).toLocaleString('id-ID')}`,
         campaignTitle: donasi.campaignTitle,
         paymentMethod: `${donasi.paymentProvider} ${donasi.paymentMethod}`,
-        paymentDate: donasi.paidAt ? donasi.paidAt.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '2026',
+        paymentDate: donasi.paidAt
+          ? donasi.paidAt.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+          : '2026',
         institutionName: 'Lembaga Amil Zakat Nasional AmanahZakat Peduli',
         institutionNpwp: '02.456.789.1-012.000',
         notes: 'Dokumen setoran zakat online sah dan terverifikasi.',
@@ -531,7 +675,7 @@ export const verifyDocument = async (req: Request, res: Response) => {
       documentNumber: cleanCode,
       errorMessage: 'Nomor dokumen atau transaksi tidak ditemukan pada basis data resmi LAZNAS AmanahZakat.',
     });
-  } catch (error: any) {
+  } catch {
     return res.status(500).json({ success: false, message: 'Gagal memverifikasi dokumen.' });
   }
 };
