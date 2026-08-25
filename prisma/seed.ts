@@ -901,63 +901,16 @@ async function main() {
     },
   });
 
-  // 9. Seed Hero Sliders
-  const heroSlidersData = [
-    {
-      id: 1,
-      title: 'Wujudkan Ekosistem Berkelanjutan Lewat Green Zakat',
-      subtitle: 'Salurkan zakat dan wakaf untuk pemulihan daerah aliran sungai, lumbung pangan dhuafa, dan air bersih pelosok nusantara.',
-      tag: 'ZAKAT BERDAYA LINGKUNGAN',
-      ctaText: 'Tunaikan Zakat',
-      ctaLink: '/donasi',
-      secondaryCtaText: 'Lihat Program Hijau',
-      secondaryCtaLink: '/kampanye?category=Konservasi+DAS+Citarum',
-      imageUrl: '/images/hero_slide_green_zakat.jpg',
-      badge: 'Program Unggulan',
-      badgeColor: '#0B9D6D',
-      isActive: true,
-      order: 1,
-    },
-    {
-      id: 2,
-      title: 'Kebaikan Tanpa Batas, Menjangkau Pelosok Negeri',
-      subtitle: 'Tiap rupiah zakat Anda disalurkan secara amanah, profesional, dan dapat diverifikasi langsung melalui sistem bukti setor sah SBMZ.',
-      tag: 'AMANAH & TRANSPARAN',
-      ctaText: 'Donasi Sekarang',
-      ctaLink: '/kampanye',
-      secondaryCtaText: 'Laporan Dampak',
-      secondaryCtaLink: '/dampak',
-      imageUrl: '/images/hero_slide_kebaikan.jpg',
-      badge: 'Audit WTP 2025',
-      badgeColor: '#14509C',
-      isActive: true,
-      order: 2,
-    },
-    {
-      id: 3,
-      title: 'Darurat Kemanusiaan: Bantuan Pangan & Medis Mustahik',
-      subtitle: 'Bantu saudara kita yang membutuhkan pangan pokok, pemenuhan gizi balita cegah stunting, dan beasiswa yatim dhuafa.',
-      tag: 'RESPON KEMANUSIAAN CEPAT',
-      ctaText: 'Bantu Sekarang',
-      ctaLink: '/donasi?campaign=balita-stunting',
-      secondaryCtaText: 'Kabar Penyaluran',
-      secondaryCtaLink: '/kabar-penyaluran',
-      imageUrl: '/images/hero_slide_palestina.jpg',
-      badge: 'Tanggap Bencana',
-      badgeColor: '#C8933A',
-      isActive: true,
-      order: 3,
-    },
-  ];
-
-  for (const h of heroSlidersData) {
+  // 9. Seed Hero Sliders (mirror webpublic FALLBACK_SLIDES)
+  const { heroSlidersMockData } = await import('./data/hero-sliders.mock-data');
+  for (const h of heroSlidersMockData) {
     await prisma.heroSlider.upsert({
       where: { id: h.id },
       update: h,
       create: h,
     });
   }
-  console.log(`✅ ${heroSlidersData.length} Hero Sliders seeded`);
+  console.log(`✅ ${heroSlidersMockData.length} Hero Sliders seeded`);
 
   // 10. Seed Testimonials
   const testimonialsData = [
