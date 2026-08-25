@@ -118,6 +118,27 @@ export class CmsController {
     }
   }
 
+  static async uploadCmsMediaImage(req: Request, res: Response) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'Tidak ada file gambar yang diunggah.' });
+      }
+      const fileUrl = `/uploads/cms/${req.file.filename}`;
+      return res.status(200).json({
+        success: true,
+        message: 'Gambar berhasil diunggah.',
+        data: {
+          url: fileUrl,
+          filename: req.file.filename,
+          size: req.file.size,
+          mimetype: req.file.mimetype,
+        },
+      });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
 
 
   static async createHeroSlider(req: Request, res: Response) {

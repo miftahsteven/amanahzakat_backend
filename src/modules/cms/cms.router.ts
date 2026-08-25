@@ -72,8 +72,64 @@ const uploadCampaign = multer({
   },
 });
 
+// Generic CMS media (testimonials, distributions, dll.)
+const cmsMediaUploadDir = path.join(process.cwd(), 'uploads/cms');
+if (!fs.existsSync(cmsMediaUploadDir)) {
+  fs.mkdirSync(cmsMediaUploadDir, { recursive: true });
+}
+
+const cmsMediaStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, cmsMediaUploadDir);
+  },
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const cleanName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '_');
+    cb(null, `cms-${Date.now()}-${cleanName}${ext}`);
+  },
+});
+
+const uploadCmsMedia = multer({
+  storage: cmsMediaStorage,
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|webp|gif|svg/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    if (extname && mimetype) {
+      return cb(null, true);
+    }
+    cb(new Error('Hanya file gambar (JPG, PNG, WEBP, GIF, SVG) yang diperbolehkan!'));
+  },
+});
+
+const CMS_MEDIA_UPLOAD_PERMS = [
+  'cms-hero.create',
+  'cms-hero.update',
+  'cms-campaigns.create',
+  'cms-campaigns.update',
+  'cms-testimonials.create',
+  'cms-testimonials.update',
+  'cms-distributions.create',
+  'cms-distributions.update',
+  'cms-impact.create',
+  'cms-impact.update',
+  'cms-assistance.create',
+  'cms-assistance.update',
+  'cms-faq.create',
+  'cms-faq.update',
+  'cms-settings.update',
+];
+
 // Protect all CMS endpoints with JWT
 router.use(authenticateJWT);
+
+router.post(
+  '/upload-media',
+  checkPermission(CMS_MEDIA_UPLOAD_PERMS),
+  uploadCmsMedia.single('file'),
+  CmsController.uploadCmsMediaImage,
+);
 
 // 1. Hero Sliders & Upload
 router.post(
