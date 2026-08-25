@@ -1,7 +1,64 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../lib/prisma';
+import { slugifyNama, toIsoDate } from '../../lib/campaign-date';
 
 const CAMPAIGN_STATUS = new Set(['Berjalan', 'Tercapai', 'Selesai']);
+
+type RincianRow = { item: string; nilai: number };
+type KabarRow = { tgl: string; judul: string; isi: string };
+type DonaturRow = { nama: string; nominal: number; waktu: string; doa?: string };
+
+function normalizeRincian(raw: unknown, fallbackTarget: number): RincianRow[] {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return [
+      { item: 'Penyaluran Program Langsung', nilai: Math.round(fallbackTarget * 0.9) },
+      { item: 'Operasional Lapangan & Amil', nilai: Math.round(fallbackTarget * 0.1) },
+    ];
+  }
+  return raw
+    .map((row: any) => ({
+      item: String(row?.item || '').trim(),
+      nilai: Number(row?.nilai) || 0,
+    }))
+    .filter((row) => row.item && row.nilai >= 0);
+}
+
+function normalizeKabar(raw: unknown): KabarRow[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((row: any) => {
+      const iso = toIsoDate(row?.tgl) || '';
+      return {
+        tgl: iso,
+        judul: String(row?.judul || '').trim(),
+        isi: String(row?.isi || '').trim(),
+      };
+    })
+    .filter((row) => row.tgl && row.judul);
+}
+
+function normalizeDonaturList(raw: unknown): DonaturRow[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((row: any) => ({
+      nama: String(row?.nama || '').trim(),
+      nominal: Number(row?.nominal) || 0,
+      waktu: String(row?.waktu || '').trim() || 'Baru saja',
+      ...(row?.doa ? { doa: String(row.doa).trim() } : {}),
+    }))
+    .filter((row) => row.nama && row.nominal > 0);
+}
+
+async function ensureUniqueSlug(base: string, excludeId?: number): Promise<string> {
+  let candidate = base || `kampanye-${Date.now()}`;
+  let n = 0;
+  while (true) {
+    const existing = await prisma.campaign.findUnique({ where: { slug: candidate } });
+    if (!existing || (excludeId != null && existing.id === excludeId)) return candidate;
+    n += 1;
+    candidate = `${base}-${n}`;
+  }
+}
 
 export class CmsController {
   // ==========================================
@@ -201,16 +258,19 @@ export class CmsController {
         cerita,
         imageUrl,
         rincian,
+        kabar,
+        donaturList,
         status,
         isFeatured,
+        slug: slugInput,
       } = req.body;
 
       const namaTrim = typeof nama === 'string' ? nama.trim() : '';
       const programTrim = typeof program === 'string' ? program.trim() : '';
-      const tenggatTrim = typeof tenggat === 'string' ? tenggat.trim() : '';
       const ringkasTrim = typeof ringkas === 'string' ? ringkas.trim() : '';
       const targetNum = Number(target);
       const statusVal = typeof status === 'string' && status.trim() ? status.trim() : 'Berjalan';
+      const tenggatIso = toIsoDate(tenggat);
 
       if (!namaTrim || namaTrim.length < 5) {
         return res.status(400).json({
@@ -230,10 +290,10 @@ export class CmsController {
           message: 'Target dana wajib diisi dan minimal Rp 1.000.000.',
         });
       }
-      if (!tenggatTrim) {
+      if (!tenggatIso) {
         return res.status(400).json({
           success: false,
-          message: 'Tenggat waktu wajib diisi.',
+          message: 'Tenggat waktu wajib diisi dengan tanggal yang valid.',
         });
       }
       if (!ringkasTrim || ringkasTrim.length < 10) {
@@ -249,13 +309,10 @@ export class CmsController {
         });
       }
 
-      // Generate clean slug
-      const baseSlug = namaTrim
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)+/g, '');
-      const uniqueSuffix = Math.floor(100 + Math.random() * 900);
-      const slug = `${baseSlug}-${uniqueSuffix}`;
+      const baseSlug =
+        (typeof slugInput === 'string' && slugifyNama(slugInput)) ||
+        `${slugifyNama(namaTrim)}-${Math.floor(100 + Math.random() * 900)}`;
+      const slug = await ensureUniqueSlug(baseSlug);
 
       const created = await prisma.campaign.create({
         data: {
@@ -266,16 +323,13 @@ export class CmsController {
           target: targetNum,
           terkumpul: 0,
           donaturCount: 0,
-          tenggat: tenggatTrim,
+          tenggat: tenggatIso,
           ringkas: ringkasTrim,
           cerita: (typeof cerita === 'string' && cerita.trim()) || ringkasTrim,
           imageUrl: (typeof imageUrl === 'string' && imageUrl.trim()) || '/images/campaigns/sumur-sumba.jpg',
-          rincian: rincian || [
-            { item: 'Penyaluran Program Langsung', nilai: targetNum * 0.9 },
-            { item: 'Operasional Lapangan & Amil', nilai: targetNum * 0.1 },
-          ],
-          kabar: [],
-          donaturList: [],
+          rincian: normalizeRincian(rincian, targetNum),
+          kabar: normalizeKabar(kabar),
+          donaturList: normalizeDonaturList(donaturList),
           status: statusVal,
           isFeatured: Boolean(isFeatured),
         },
@@ -313,8 +367,11 @@ export class CmsController {
         cerita,
         imageUrl,
         rincian,
+        kabar,
+        donaturList,
         status,
         isFeatured,
+        slug: slugInput,
       } = req.body;
 
       if (nama !== undefined) {
@@ -332,8 +389,9 @@ export class CmsController {
           message: 'Pilar / kategori program wajib diisi.',
         });
       }
+      let targetNum = existing.target;
       if (target !== undefined) {
-        const targetNum = Number(target);
+        targetNum = Number(target);
         if (!Number.isFinite(targetNum) || targetNum < 1_000_000) {
           return res.status(400).json({
             success: false,
@@ -341,11 +399,15 @@ export class CmsController {
           });
         }
       }
-      if (tenggat !== undefined && !String(tenggat).trim()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Tenggat waktu wajib diisi.',
-        });
+      let tenggatIso: string | undefined;
+      if (tenggat !== undefined) {
+        tenggatIso = toIsoDate(tenggat) || undefined;
+        if (!tenggatIso) {
+          return res.status(400).json({
+            success: false,
+            message: 'Tenggat waktu wajib diisi dengan tanggal yang valid.',
+          });
+        }
       }
       if (ringkas !== undefined) {
         const ringkasTrim = String(ringkas).trim();
@@ -363,6 +425,15 @@ export class CmsController {
         });
       }
 
+      let nextSlug: string | undefined;
+      if (slugInput !== undefined) {
+        const cleaned = slugifyNama(String(slugInput));
+        if (!cleaned) {
+          return res.status(400).json({ success: false, message: 'Slug kampanye tidak valid.' });
+        }
+        nextSlug = await ensureUniqueSlug(cleaned, id);
+      }
+
       // terkumpul / donaturCount tidak diubah dari CMS — diupdate lewat donasi web
       const updated = await prisma.campaign.update({
         where: { id },
@@ -370,14 +441,17 @@ export class CmsController {
           ...(nama !== undefined && { nama: String(nama).trim() }),
           ...(program !== undefined && { program: String(program).trim() }),
           ...(lokasi !== undefined && { lokasi: String(lokasi).trim() || 'Indonesia' }),
-          ...(target !== undefined && { target: Number(target) }),
-          ...(tenggat !== undefined && { tenggat: String(tenggat).trim() }),
+          ...(target !== undefined && { target: targetNum }),
+          ...(tenggatIso !== undefined && { tenggat: tenggatIso }),
           ...(ringkas !== undefined && { ringkas: String(ringkas).trim() }),
           ...(cerita !== undefined && { cerita: String(cerita).trim() }),
           ...(imageUrl !== undefined && { imageUrl: String(imageUrl).trim() }),
-          ...(rincian !== undefined && { rincian }),
+          ...(rincian !== undefined && { rincian: normalizeRincian(rincian, targetNum) }),
+          ...(kabar !== undefined && { kabar: normalizeKabar(kabar) }),
+          ...(donaturList !== undefined && { donaturList: normalizeDonaturList(donaturList) }),
           ...(status !== undefined && { status: String(status).trim() }),
           ...(isFeatured !== undefined && { isFeatured: Boolean(isFeatured) }),
+          ...(nextSlug !== undefined && { slug: nextSlug }),
         },
       });
 

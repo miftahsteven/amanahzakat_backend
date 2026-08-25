@@ -25,6 +25,7 @@
     "prisma:seed:zakat": "ts-node-dev --transpile-only --no-notify prisma/seed-zakat.ts",
     "prisma:seed:approval-menu": "ts-node-dev --transpile-only --no-notify prisma/seed-approval-menu.ts",
     "prisma:seed:program-delete": "ts-node-dev --transpile-only --no-notify prisma/seed-program-delete.ts",
+    "prisma:seed:normalize-campaign-dates": "ts-node-dev --transpile-only --no-notify prisma/seed-normalize-campaign-dates.ts",
     "prisma:seed:laporan-keuangan-menu": "ts-node-dev --transpile-only --no-notify prisma/seed-laporan-keuangan-menu.ts",
     "postinstall": "prisma generate"
   },
