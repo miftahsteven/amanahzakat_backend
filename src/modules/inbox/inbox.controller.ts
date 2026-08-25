@@ -15,7 +15,7 @@ export class InboxController {
 
   static async markRead(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const data = await InboxService.markRead(req.params.id);
+      const data = await InboxService.markRead(String(req.params.id));
       res.status(200).json({ success: true, data });
     } catch (error) {
       next(error);

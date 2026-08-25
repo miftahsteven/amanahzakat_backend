@@ -41,7 +41,7 @@ export class KeuanganController {
 
   static async exportSimba(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const kodeForm = req.params.kodeForm;
+      const kodeForm = String(req.params.kodeForm);
       const data = await KeuanganService.exportSimba(kodeForm);
       res.status(200).json({ success: true, data });
     } catch (error) {
