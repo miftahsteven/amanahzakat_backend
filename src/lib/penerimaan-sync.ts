@@ -1,6 +1,7 @@
 import { DonasiWeb } from '@prisma/client';
 import { prisma } from './prisma';
 import { mapFundTypeToErp, mapKanalToErp } from './donation-web';
+import { activeOnly } from './soft-delete';
 
 function webCatatanMarker(transactionId: string) {
   return `web:${transactionId}`;
@@ -14,6 +15,7 @@ function buildCatatan(donation: DonasiWeb) {
 async function resolveMuzakki(donation: DonasiWeb) {
   let erpMuzakki = await prisma.muzakki.findFirst({
     where: {
+      ...activeOnly,
       OR: [
         ...(donation.donorEmail ? [{ email: donation.donorEmail }] : []),
         ...(donation.donorPhone ? [{ hp: donation.donorPhone }] : []),
