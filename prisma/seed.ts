@@ -47,7 +47,7 @@ const menusData = [
   { kodeModul: 'KEUANGAN', kodeMenu: 'jurnal', namaMenu: 'Pencatatan Jurnal & G/L PSAK 109', kodeTampil: 'JR', icon: 'BookOpen', urutan: 1, actions: [...read('Lihat Jurnal & G/L'), { aksi: 'create', nama: 'Catat Jurnal' }] },
   { kodeModul: 'KEUANGAN', kodeMenu: 'laporan-keuangan', namaMenu: 'Laporan Keuangan PSAK 109', kodeTampil: 'LK', icon: 'Receipt', urutan: 2, actions: [...read('Lihat Laporan Keuangan PSAK 109'), { aksi: 'export', nama: 'Ekspor Laporan Keuangan' }] },
   { kodeModul: 'KEUANGAN', kodeMenu: 'closing', namaMenu: 'Closing Periode Akuntansi', kodeTampil: 'CL', icon: 'Lock', urutan: 3, actions: [...read('Lihat Closing Periode'), { aksi: 'execute', nama: 'Eksekusi Closing Periode' }] },
-  { kodeModul: 'KEUANGAN', kodeMenu: 'simba', namaMenu: 'Export Paket SIMBA BAZNAS', kodeTampil: 'SB', icon: 'Package', urutan: 4, actions: [...read('Lihat Export SIMBA'), { aksi: 'export', nama: 'Ekspor Paket SIMBA' }] },
+  { kodeModul: 'KEUANGAN', kodeMenu: 'simba', namaMenu: 'Entri Bulanan SIMBA BAZNAS', kodeTampil: 'SB', icon: 'Package', urutan: 4, actions: [...read('Lihat Entri SIMBA'), { aksi: 'export', nama: 'Cetak / Ekspor Lapkin SIMBA' }] },
 
   { kodeModul: 'PELAPORAN', kodeMenu: 'bukti', namaMenu: 'Bukti Setor Zakat (BSZ)', kodeTampil: 'BZ', icon: 'FileSpreadsheet', urutan: 1, actions: [...read('Lihat Bukti Setor Zakat'), { aksi: 'export', nama: 'Unduh / Cetak BSZ PDF' }] },
 

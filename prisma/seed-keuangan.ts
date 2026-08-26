@@ -29,11 +29,13 @@ const jurnalSeed = [
 ];
 
 const simbaSeed = [
-  { kodeForm: 'FORM_1', namaForm: 'Form 1: Pengumpulan Zakat, Infak, Sedekah per Rekening', status: 'Siap Kirim', itemCount: 0, totalNilai: 0 },
-  { kodeForm: 'FORM_2', namaForm: 'Form 2: Penyaluran Dana ZIS per 8 Asnaf', status: 'Siap Kirim', itemCount: 0, totalNilai: 0 },
-  { kodeForm: 'FORM_3', namaForm: 'Form 3: Data Muzakki & NPWP Terdaftar', status: 'Siap Kirim', itemCount: 0, totalNilai: 0 },
-  { kodeForm: 'FORM_4', namaForm: 'Form 4: Data Mustahik By Name By Address (NIK)', status: 'Siap Kirim', itemCount: 0, totalNilai: 0 },
-  { kodeForm: 'FORM_5', namaForm: 'Form 5: Neraca & Laporan Keuangan PSAK 109', status: 'Draft', itemCount: 0, totalNilai: 0 },
+  { kodeForm: 'HAL_2_PENGUMPULAN', namaForm: 'Hal 2 - Pengumpulan', status: 'Siap Kirim', itemCount: 0, totalNilai: 0 },
+  { kodeForm: 'HAL_3_MUZAKI', namaForm: 'Hal 3 - Muzaki', status: 'Siap Kirim', itemCount: 0, totalNilai: 0 },
+  { kodeForm: 'HAL_4_PENYALURAN', namaForm: 'Hal 4 - Penyaluran', status: 'Siap Kirim', itemCount: 0, totalNilai: 0 },
+  { kodeForm: 'HAL_5_MUSTAHIK', namaForm: 'Hal 5 - Mustahik', status: 'Siap Kirim', itemCount: 0, totalNilai: 0 },
+  { kodeForm: 'HAL_6_TATA_KELOLA', namaForm: 'Hal 6 - Tata Kelola', status: 'Draft', itemCount: 0, totalNilai: 0 },
+  { kodeForm: 'HAL_7_OFF_BALANCE', namaForm: 'Hal 7 - Off Balance Sheet', status: 'Draft', itemCount: 0, totalNilai: 0 },
+  { kodeForm: 'HAL_8_DUKUNGAN_PEMDA', namaForm: 'Hal 8 - Dukungan Pemerintah', status: 'Draft', itemCount: 0, totalNilai: 0 },
 ];
 
 const notifikasiSeed = [

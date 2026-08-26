@@ -11,6 +11,7 @@ router.get('/coa', checkPermission('jurnal.read'), KeuanganController.listCoa);
 router.get('/jurnal', checkPermission('jurnal.read'), KeuanganController.listJurnal);
 router.post('/jurnal', checkPermission('jurnal.create'), KeuanganController.createJurnal);
 router.get('/simba', checkPermission('simba.read'), KeuanganController.listSimba);
+router.get('/simba/:kodeForm/detail', checkPermission('simba.read'), KeuanganController.detailSimba);
 router.patch('/simba/:kodeForm/export', checkPermission('simba.export'), KeuanganController.exportSimba);
 router.get('/closing', checkPermission('closing.read'), KeuanganController.getClosing);
 router.patch('/closing/step', checkPermission('closing.execute'), KeuanganController.updateClosingStep);

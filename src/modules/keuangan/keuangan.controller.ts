@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../../middlewares/auth.middleware';
 import { KeuanganService } from './keuangan.service';
+import { SimbaLapkinService } from './simba-lapkin.service';
 
 export class KeuanganController {
   static async listCoa(_req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
@@ -30,9 +31,21 @@ export class KeuanganController {
     }
   }
 
-  static async listSimba(_req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  static async listSimba(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const data = await KeuanganService.listSimba();
+      const periode = typeof req.query.periode === 'string' ? req.query.periode : undefined;
+      const data = await SimbaLapkinService.list(periode);
+      res.status(200).json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async detailSimba(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const kodeForm = String(req.params.kodeForm);
+      const periode = typeof req.query.periode === 'string' ? req.query.periode : undefined;
+      const data = await SimbaLapkinService.detail(kodeForm, periode);
       res.status(200).json({ success: true, data });
     } catch (error) {
       next(error);
@@ -42,7 +55,7 @@ export class KeuanganController {
   static async exportSimba(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const kodeForm = String(req.params.kodeForm);
-      const data = await KeuanganService.exportSimba(kodeForm);
+      const data = await SimbaLapkinService.markExported(kodeForm);
       res.status(200).json({ success: true, data });
     } catch (error) {
       next(error);
