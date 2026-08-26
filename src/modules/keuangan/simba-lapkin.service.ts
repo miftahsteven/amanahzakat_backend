@@ -45,7 +45,10 @@ export type SimbaRow = {
   label: string;
   current: number;
   previous: number;
-  unit?: 'rp' | 'count' | 'ekor';
+  unit?: 'rp' | 'count' | 'ekor' | 'text';
+  /** Teks non-numerik (status, nama, URL) — ditampilkan menggantikan current/previous. */
+  textCurrent?: string;
+  textPrevious?: string;
   indent?: number;
   isTotal?: boolean;
 };
@@ -109,8 +112,34 @@ function isIndividu(tipe: string): boolean {
   return tipe === 'Perorangan';
 }
 
-function row(kode: string, label: string, current: number, previous: number, opts?: Partial<SimbaRow>): SimbaRow {
+function row(
+  kode: string,
+  label: string,
+  current: number,
+  previous: number,
+  opts?: Partial<SimbaRow>,
+): SimbaRow {
   return { kode, label, current, previous, unit: 'rp', indent: 0, ...opts };
+}
+
+function textRow(
+  kode: string,
+  label: string,
+  textCurrent = '—',
+  textPrevious = '—',
+  opts?: Partial<SimbaRow>,
+): SimbaRow {
+  return {
+    kode,
+    label,
+    current: 0,
+    previous: 0,
+    unit: 'text',
+    textCurrent,
+    textPrevious,
+    indent: 0,
+    ...opts,
+  };
 }
 
 async function ensureSimbaForms() {
@@ -485,13 +514,168 @@ function buildMustahik(curr: PenyaluranRow[], prev: PenyaluranRow[]): SimbaSecti
   ];
 }
 
+function buildTataKelola(): SimbaSection[] {
+  // Struktur mengikuti PDF Lapkin Hal 6 — nilai diisi menyusul (master lembaga / RKAT).
+  return [
+    {
+      title: 'PIMPINAN',
+      rows: [
+        textRow('1', 'Pimpinan', '', '', { isTotal: true }),
+        textRow('1.1', 'Nama Pimpinan Tertinggi', 'Belum diisi', '—', { indent: 1 }),
+      ],
+    },
+    {
+      title: 'KELENGKAPAN KELEMBAGAAN',
+      rows: [
+        textRow('2', 'Kelengkapan Kelembagaan', '', '', { isTotal: true }),
+        textRow('2.1', 'Periode Surat Keputusan Kelembagaan', 'Belum diisi', '—', { indent: 1 }),
+        textRow('2.2', 'Ketersediaan Laporan Keuangan Akhir Tahun (tahun sebelumnya)', 'Belum diisi', '—', {
+          indent: 1,
+        }),
+        textRow('2.3', 'Ketersediaan Laporan Keuangan Tengah Tahun (tahun berjalan)', 'Belum diisi', '—', {
+          indent: 1,
+        }),
+        textRow('2.4', 'Ketersediaan Rencana Kerja dan Anggaran Tahunan', 'Belum diisi', '—', { indent: 1 }),
+        textRow('2.5', 'Ketersediaan Rencana Strategis', 'Belum diisi', '—', { indent: 1 }),
+      ],
+    },
+    {
+      title: 'JUMLAH SDM AMIL',
+      rows: [
+        row('3', 'Jumlah SDM Amil', 0, 0, { unit: 'count', isTotal: true }),
+        row('3.1', 'Jumlah SDM Amil Pimpinan', 0, 0, { unit: 'count', indent: 1 }),
+        row('3.2', 'Jumlah SDM Amil Pimpinan Tersertifikasi', 0, 0, { unit: 'count', indent: 1 }),
+        row('3.3', 'Jumlah SDM Amil Pimpinan Belum Tersertifikasi', 0, 0, { unit: 'count', indent: 1 }),
+        row('3.4', 'Jumlah SDM Amil Pelaksana Tetap', 0, 0, { unit: 'count', indent: 1 }),
+        row('3.5', 'Jumlah SDM Amil Pelaksana Kontrak', 0, 0, { unit: 'count', indent: 1 }),
+        row('3.6', 'Jumlah SDM Amil Pelaksana Tersertifikasi', 0, 0, { unit: 'count', indent: 1 }),
+        row('3.7', 'Jumlah SDM Amil Pelaksana Belum Tersertifikasi', 0, 0, { unit: 'count', indent: 1 }),
+      ],
+    },
+    {
+      title: 'KELENGKAPAN INFRASTRUKTUR PELAYANAN',
+      rows: [
+        textRow('4', 'Kelengkapan Infrastruktur Pelayanan', '', '', { isTotal: true }),
+        textRow('4.1', 'Status Kantor', 'Belum diisi', '—', { indent: 1 }),
+        row('4.2', 'Jumlah Perwakilan LAZ', 0, 0, { unit: 'count', indent: 1 }),
+        row('4.3', 'Jumlah Mitra Pengelolaan Zakat', 0, 0, { unit: 'count', indent: 1 }),
+      ],
+    },
+    {
+      title: 'KELENGKAPAN TATA KELOLA (KEBIJAKAN DAN PROSEDUR)',
+      rows: [
+        textRow('5', 'Kebijakan dan Prosedur', '', '', { isTotal: true }),
+        textRow('5.1', 'Kebijakan dan Prosedur Pengumpulan', 'Belum diisi', '—', { indent: 1 }),
+        textRow('5.2', 'Kebijakan dan Prosedur Pendistribusian dan Pendayagunaan', 'Belum diisi', '—', {
+          indent: 1,
+        }),
+        textRow('5.3', 'Kebijakan dan Prosedur Pengelolaan Sumber Daya Manusia', 'Belum diisi', '—', {
+          indent: 1,
+        }),
+        textRow('5.4', 'Kebijakan dan Prosedur Pengelolaan Perencanaan dan Keuangan', 'Belum diisi', '—', {
+          indent: 1,
+        }),
+        textRow('5.5', 'Kebijakan dan Prosedur Pengelolaan Administrasi Umum', 'Belum diisi', '—', {
+          indent: 1,
+        }),
+        textRow('5.6', 'Kebijakan dan Prosedur Pengelolaan Kehumasan dan Komunikasi Publik', 'Belum diisi', '—', {
+          indent: 1,
+        }),
+        textRow('5.7', 'Kebijakan dan Prosedur Pengelolaan Pengendalian Internal dan Audit', 'Belum diisi', '—', {
+          indent: 1,
+        }),
+        textRow('5.8', 'Kebijakan dan Prosedur Pengadaan Barang dan Jasa', 'Belum diisi', '—', { indent: 1 }),
+        textRow('5.9', 'Kebijakan dan Prosedur Teknologi Informasi', 'Belum diisi', '—', { indent: 1 }),
+        textRow('5.10', 'Kebijakan dan Prosedur Pengelolaan Lainnya', 'Belum diisi', '—', { indent: 1 }),
+      ],
+    },
+    {
+      title: 'KELENGKAPAN SERTIFIKASI',
+      rows: [
+        textRow('6', 'Sertifikasi', '', '', { isTotal: true }),
+        textRow('6.1', 'Sertifikasi Standar Sistem Manajemen', 'Belum diisi', '—', { indent: 1 }),
+      ],
+    },
+    {
+      title: 'TARGET RKAT',
+      rows: [
+        row('7', 'Target RKAT', 0, 0, { isTotal: true }),
+        row('7.1', 'Zakat Maal', 0, 0, { indent: 1 }),
+        row('7.2', 'Zakat Fitrah', 0, 0, { indent: 1 }),
+        row('7.3', 'Infak Sedekah', 0, 0, { indent: 1 }),
+      ],
+    },
+  ];
+}
+
+function buildOffBalance(): SimbaSection[] {
+  // Struktur mengikuti PDF Lapkin Hal 7 — nilai diisi menyusul (flag transaksi off-balance).
+  return [
+    {
+      title: 'PENGUMPULAN ZIS-DSKL DI LUAR NERACA',
+      rows: [
+        row('1', 'Jenis Dana', 0, 0, { isTotal: true }),
+        row('1.1', 'Zakat Maal Perorangan', 0, 0, { indent: 1 }),
+        row('1.2', 'Zakat Fitrah', 0, 0, { indent: 1 }),
+        row('1.3', 'Infak/Sedekah', 0, 0, { indent: 1 }),
+        row('1.4', 'Infak/Sedekah dalam Bentuk Natura dan Jasa', 0, 0, { indent: 1 }),
+        row('1.5', 'Kurban', 0, 0, { indent: 1 }),
+        row('1.6', 'Fidyah', 0, 0, { indent: 1 }),
+        row('1.7', 'DSK Lainnya', 0, 0, { indent: 1 }),
+        row('T1', 'TOTAL PENGUMPULAN', 0, 0, { isTotal: true }),
+      ],
+    },
+    {
+      title: 'PENYALURAN ZIS-DSKL DI LUAR NERACA',
+      rows: [
+        row('2', 'Jenis Dana', 0, 0, { isTotal: true }),
+        row('2.1', 'Zakat Maal Perorangan', 0, 0, { indent: 1 }),
+        row('2.2', 'Zakat Fitrah', 0, 0, { indent: 1 }),
+        row('2.3', 'Infak/Sedekah', 0, 0, { indent: 1 }),
+        row('2.4', 'Infak/Sedekah dalam Bentuk Natura dan Jasa', 0, 0, { indent: 1 }),
+        row('2.5', 'Kurban', 0, 0, { indent: 1 }),
+        row('2.6', 'Fidyah', 0, 0, { indent: 1 }),
+        row('2.7', 'DSK Lainnya', 0, 0, { indent: 1 }),
+        row('T2', 'TOTAL PENYALURAN', 0, 0, { isTotal: true }),
+      ],
+    },
+    {
+      title: 'MUZAKI/DONATUR',
+      rows: [
+        row('3', 'Jenis Dana', 0, 0, { unit: 'count', isTotal: true }),
+        row('3.1', 'Muzaki Maal Perorangan', 0, 0, { unit: 'count', indent: 1 }),
+        row('3.2', 'Muzaki Maal Badan', 0, 0, { unit: 'count', indent: 1 }),
+        row('3.3', 'Muzaki Fitrah', 0, 0, { unit: 'count', indent: 1 }),
+        row('3.4', 'Munfik', 0, 0, { unit: 'count', indent: 1 }),
+        row('3.5', 'Munfik Barang dan Jasa', 0, 0, { unit: 'count', indent: 1 }),
+        row('3.6', 'Mudhohi (Pembayar Kurban)', 0, 0, { unit: 'count', indent: 1 }),
+        row('3.7', 'Pembayar Fidyah', 0, 0, { unit: 'count', indent: 1 }),
+        row('3.8', 'Pembayar DSKL', 0, 0, { unit: 'count', indent: 1 }),
+        row('T3', 'TOTAL MUZAKI/DONATUR', 0, 0, { unit: 'count', isTotal: true }),
+      ],
+    },
+    {
+      title: 'PENERIMA PENYALURAN',
+      rows: [
+        row('4', 'Jenis Dana', 0, 0, { unit: 'count', isTotal: true }),
+        row('4.1', 'Penerima Penyaluran Zakat Maal', 0, 0, { unit: 'count', indent: 1 }),
+        row('4.2', 'Penerima Penyaluran Zakat Fitrah', 0, 0, { unit: 'count', indent: 1 }),
+        row('4.3', 'Penerima Penyaluran Infak/Sedekah', 0, 0, { unit: 'count', indent: 1 }),
+        row('4.4', 'Penerima Penyaluran Infak/Sedekah Barang/Jasa', 0, 0, { unit: 'count', indent: 1 }),
+        row('4.5', 'Penerima Penyaluran Kurban', 0, 0, { unit: 'count', indent: 1 }),
+        row('4.6', 'Penerima Penyaluran Fidyah', 0, 0, { unit: 'count', indent: 1 }),
+        row('4.7', 'Penerima Penyaluran DSKL', 0, 0, { unit: 'count', indent: 1 }),
+        row('T4', 'TOTAL PENERIMA MANFAAT', 0, 0, { unit: 'count', isTotal: true }),
+      ],
+    },
+  ];
+}
+
 function placeholderSections(title: string, note: string): SimbaSection[] {
   return [
     {
       title,
-      rows: [
-        row('N', note, 0, 0, { unit: 'count', isTotal: true }),
-      ],
+      rows: [textRow('N', note, 'Menunggu template PDF', '—', { isTotal: true })],
     },
   ];
 }
@@ -558,8 +742,16 @@ export class SimbaLapkinService {
         totalNilai: 0,
         status: currS.length ? 'Siap Kirim' : 'Draft',
       },
-      HAL_6_TATA_KELOLA: { itemCount: 0, totalNilai: 0, status: 'Draft' },
-      HAL_7_OFF_BALANCE: { itemCount: 0, totalNilai: 0, status: 'Draft' },
+      HAL_6_TATA_KELOLA: {
+        itemCount: buildTataKelola().reduce((n, s) => n + s.rows.length, 0),
+        totalNilai: 0,
+        status: 'Draft',
+      },
+      HAL_7_OFF_BALANCE: {
+        itemCount: buildOffBalance().reduce((n, s) => n + s.rows.length, 0),
+        totalNilai: 0,
+        status: 'Draft',
+      },
       HAL_8_DUKUNGAN_PEMDA: { itemCount: 0, totalNilai: 0, status: 'Draft' },
     };
 
@@ -631,21 +823,15 @@ export class SimbaLapkinService {
         sections = buildMustahik(currS, prevS);
         break;
       case 'HAL_6_TATA_KELOLA':
-        sections = placeholderSections(
-          'DATA TATA KELOLA',
-          'Data tata kelola diisi manual di SIMBA (pimpinan, SDM, kebijakan, target RKAT).',
-        );
+        sections = buildTataKelola();
         break;
       case 'HAL_7_OFF_BALANCE':
-        sections = placeholderSections(
-          'OFF BALANCE SHEET',
-          'Belum ada flag transaksi off-balance di ERP — isi manual atau aktifkan pencatatan khusus.',
-        );
+        sections = buildOffBalance();
         break;
       case 'HAL_8_DUKUNGAN_PEMDA':
         sections = placeholderSections(
           'DUKUNGAN PEMERINTAH',
-          'Halaman dukungan pemerintah belum tersedia di template PDF — isi manual di SIMBA.',
+          'Format Hal 8 menunggu file PDF dari user — sementara placeholder.',
         );
         break;
     }
