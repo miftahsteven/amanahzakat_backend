@@ -3,12 +3,13 @@ import { prisma } from '../../lib/prisma';
 import bcrypt from 'bcryptjs';
 import { sendRegistrationOtpEmail } from '../../services/email.service';
 import { normalizeCreateDonationBody, toPaymentInstructionResponse } from '../../lib/donation-web';
+import { midtransService } from '../../services/midtrans.service';
 import {
   finalizePenerimaanFromWeb,
   incrementCampaignStatsIfLinked,
   syncPendingPenerimaanFromWeb,
 } from '../../lib/penerimaan-sync';
-import { normalizeBszRef, verifyBszSignature } from '../../lib/bsz-sign';
+import { buildBszPublicVerifyUrl, normalizeBszRef, verifyBszSignature } from '../../lib/bsz-sign';
 // In-Memory OTP Store for Registrations (TTL: 5 Minutes)
 interface PendingOtpRegistration {
   code: string;
@@ -307,6 +308,19 @@ export const createDonationPayment = async (req: Request, res: Response) => {
 
     const expiredAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
+    // Request Midtrans Snap Token & URL
+    const snapResult = await midtransService.createSnapTransaction({
+      transactionId,
+      amount: totalAmount,
+      campaignId: input.campaignId,
+      campaignSlug: input.campaignSlug,
+      campaignTitle: input.campaignTitle,
+      donorName: input.donorName,
+      donorEmail: input.donorEmail,
+      donorPhone: input.donorPhone,
+      fundType: input.fundType,
+    });
+
     const newDonation = await prisma.donasiWeb.create({
       data: {
         transactionId,
@@ -328,6 +342,8 @@ export const createDonationPayment = async (req: Request, res: Response) => {
         message: input.message,
         status: 'PENDING',
         expiredAt,
+        snapToken: snapResult.token,
+        redirectUrl: snapResult.redirect_url,
       },
     });
 
@@ -343,12 +359,25 @@ export const createDonationPayment = async (req: Request, res: Response) => {
 export const getPaymentStatus = async (req: Request, res: Response) => {
   try {
     const transactionId = String(req.params.transactionId);
-    const donation = await prisma.donasiWeb.findUnique({
+    let donation = await prisma.donasiWeb.findUnique({
       where: { transactionId },
     });
 
     if (!donation) {
       return res.status(404).json({ success: false, message: 'Transaksi tidak ditemukan.' });
+    }
+
+    // Auto-sync status with Midtrans in real time if currently pending
+    if (donation.status === 'PENDING') {
+      try {
+        const midtransRes = await midtransService.getTransactionStatus(transactionId);
+        if (midtransRes && midtransRes.transaction_status) {
+          const refreshed = await prisma.donasiWeb.findUnique({ where: { transactionId } });
+          if (refreshed) donation = refreshed;
+        }
+      } catch (err) {
+        // Continue with current DB record if Midtrans sync times out
+      }
     }
 
     return res.status(200).json(toPaymentInstructionResponse(donation));
@@ -416,18 +445,44 @@ export const getReceiptData = async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: 'Tanda terima belum tersedia atau belum dibayar.' });
     }
 
+    const isZakat = donation.fundType === 'ZAKAT';
+    const documentNumber = donation.sbmzNumber || donation.noKwitansi || `KWT/${donation.transactionId}`;
+    const documentTitle = isZakat ? 'Surat Bukti Membayar Zakat (SBMZ)' : 'Bukti Penerimaan Donasi & Infak';
+    
+    // Official public verification link with HMAC-SHA256 signature
+    const qrUrl = buildBszPublicVerifyUrl(donation.noKwitansi || donation.sbmzNumber || donation.transactionId);
+
+    const glAccount =
+      donation.fundType === 'ZAKAT'
+        ? '4011000030 — Penerimaan Zakat Maal & Profesi'
+        : donation.fundType === 'WAQF_CASH'
+        ? '4013000010 — Penerimaan Wakaf Uang'
+        : '4012000020 — Penerimaan Infak & Shodaqoh';
+
+    const notes = isZakat
+      ? 'Dokumen ini sah dan diterbitkan resmi oleh sistem LAZNAS AmanahZakat (SK Menag RI No. 892/2019). Sesuai UU No. 23/2011 Pasal 22, UU No. 36/2008 Pasal 9, dan PP No. 60/2010, SBMZ ini sah sebagai bukti pengurangan penghasilan bruto dalam perhitungan Pajak Penghasilan (PPh) pada SPT Tahunan.'
+      : 'Bukti setor ini menyatakan dana telah diterima di rekening resmi AmanahZakat dan disalurkan 100% amanah sesuai akad peruntukan program.';
+
     return res.status(200).json({
       transactionId: donation.transactionId,
       receiptNumber: donation.noKwitansi || `KWT/${donation.transactionId}`,
       sbmzNumber: donation.sbmzNumber,
-      donorName: donation.donorName,
+      documentNumber,
+      isZakat,
+      documentTitle,
+      donorName: donation.isAnonymous ? 'Donatur Anonim (Hamba Allah)' : donation.donorName,
       donorEmail: donation.donorEmail,
+      donorPhone: donation.donorPhone,
       amount: donation.amount,
       formattedAmount: `Rp ${Math.round(donation.amount).toLocaleString('id-ID')}`,
       campaignTitle: donation.campaignTitle,
       fundType: donation.fundType,
       paidAt: donation.paidAt ? donation.paidAt.toISOString() : donation.updatedAt.toISOString(),
-      paymentMethod: `${donation.paymentProvider} ${donation.paymentMethod}`,
+      paymentMethod: donation.paymentMethod || 'Midtrans PG',
+      glAccount,
+      qrPayload: qrUrl,
+      qrUrl,
+      notes,
       status: 'PAID',
     });
   } catch (error: any) {

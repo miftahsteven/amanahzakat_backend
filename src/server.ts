@@ -34,6 +34,11 @@ app.use('/api/v1/uploads', express.static(uploadsRoot));
 // Mount Main API Routes
 app.use('/api/v1', apiRouter);
 
+// Support root-level webhook URL e.g. http://domain.com/notification/handling
+import midtransRouter from './modules/midtrans/midtrans.router';
+app.use('/notification', midtransRouter);
+app.use('/midtrans', midtransRouter);
+
 
 // 404 Fallback
 app.use((req, res) => {

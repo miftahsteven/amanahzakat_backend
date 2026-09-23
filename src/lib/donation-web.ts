@@ -105,6 +105,8 @@ export function toPaymentInstructionResponse(donation: DonasiWeb) {
     channelLabel,
     virtualAccountNumber: channel !== 'QRIS' ? donation.paymentCode : undefined,
     qrString: donation.qrPayload || undefined,
+    snapToken: donation.snapToken || undefined,
+    redirectUrl: donation.redirectUrl || undefined,
     status: donation.status,
     createdAt: donation.createdAt.toISOString(),
     expiresAt: donation.expiredAt.toISOString(),

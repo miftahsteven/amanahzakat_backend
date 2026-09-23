@@ -19,6 +19,7 @@ import inboxRouter from './modules/inbox/inbox.router';
 import approvalRouter from './modules/approval/approval.router';
 import portalRouter from './modules/portal/portal.router';
 import kalkulatorRouter from './modules/kalkulator/kalkulator.router';
+import midtransRouter from './modules/midtrans/midtrans.router';
 
 const router = Router();
 
@@ -37,6 +38,8 @@ router.use('/auth', authRouter);
 router.use('/users', userRouter);
 router.use('/acl', aclRouter);
 router.use('/public', publicRouter);
+router.use('/midtrans', midtransRouter);
+router.use('/notification', midtransRouter);
 router.use('/cms', cmsRouter);
 router.use('/penerimaan', penerimaanRouter);
 router.use('/muzakki', muzakkiRouter);
@@ -55,3 +58,4 @@ router.use('/portal', portalRouter);
 router.use('/kalkulator', kalkulatorRouter);
 
 export default router;
+

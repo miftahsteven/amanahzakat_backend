@@ -474,6 +474,10 @@ model DonasiWeb {
   paidAt          DateTime?
   sbmzNumber      String?
   noKwitansi      String?
+  snapToken       String?
+  redirectUrl     String?
+  midtransResponse Json?
+  paymentType     String?
 
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
