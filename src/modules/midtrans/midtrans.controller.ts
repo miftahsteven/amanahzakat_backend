@@ -10,9 +10,9 @@ export const handleMidtransNotification = async (req: Request, res: Response) =>
     console.log('Received Midtrans Notification:', JSON.stringify(payload, null, 2));
 
     if (!payload || !payload.order_id) {
-      return res.status(400).json({
-        status: 'ERROR',
-        message: 'Invalid payload: order_id is required',
+      return res.status(200).json({
+        status: 'OK',
+        message: 'Midtrans test notification probe received successfully',
       });
     }
 
@@ -20,9 +20,9 @@ export const handleMidtransNotification = async (req: Request, res: Response) =>
     const isSignatureValid = midtransService.verifySignature(payload);
     if (!isSignatureValid) {
       console.warn('Warning: Invalid signature key received for order:', payload.order_id);
-      return res.status(403).json({
-        status: 'ERROR',
-        message: 'Invalid signature key',
+      return res.status(200).json({
+        status: 'WARNING',
+        message: 'Invalid signature key, notification acknowledged',
       });
     }
 
@@ -36,9 +36,9 @@ export const handleMidtransNotification = async (req: Request, res: Response) =>
     });
   } catch (error: any) {
     console.error('Error handling Midtrans notification:', error);
-    return res.status(500).json({
-      status: 'ERROR',
-      message: error.message || 'Internal server error processing notification',
+    return res.status(200).json({
+      status: 'OK',
+      message: error.message || 'Internal server error acknowledged',
     });
   }
 };
